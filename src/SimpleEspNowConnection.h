@@ -15,7 +15,6 @@ typedef enum SimpleEspNowRole
   SERVER = 0, CLIENT = 1
 } SimpleEspNowRole_t;
 
-
 class SimpleEspNowConnection 
 {   
   public:
@@ -39,6 +38,10 @@ class SimpleEspNowConnection
 	String 			  macToStr(const uint8_t* mac);
 
   protected:    
+	typedef enum SimpleEspNowMessageType
+	{
+	  DATA = 0, PAIR = 1
+	} SimpleEspNowMessageType_t;
 	
   private:    
 	SimpleEspNowRole_t    _role;
