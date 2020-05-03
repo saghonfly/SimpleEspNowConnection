@@ -1,0 +1,22 @@
+{
+  "name": "SimpleEspNowConnection",
+  "keywords": "espnow, pairing",
+  "description": "ESP8266 Library for EspNow connections and pairing",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/saghonfly/SimpleEspNowConnection.git"
+  },
+  "authors": 
+  [
+    {
+      "name": "Erich O. Pintar",
+      "email": "eop@pintarweb.net",
+      "url": "http://pintarweb.net",
+      "maintainer": true
+    },
+  ],
+  "version": "0.0.1",
+  "frameworks": "arduino",
+  "platforms": "*"
+}

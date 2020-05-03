@@ -1,0 +1,29 @@
+#######################################
+# Syntax Coloring Map For SImpleEspNowConnection
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+SimpleEspNowConnection		KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+
+begin						KEYWORD2
+end							KEYWORD2
+startPairing				KEYWORD2
+endPairing					KEYWORD2
+setBroadcastMac				KEYWORD2
+setCryptKey					KEYWORD2
+onNewGatewayAddress			KEYWORD2
+sendMessage					KEYWORD2
+strToMac					KEYWORD2
+macToStr					KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
