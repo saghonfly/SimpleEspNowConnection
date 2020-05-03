@@ -25,9 +25,9 @@ class SimpleEspNowConnection
     SimpleEspNowConnection(SimpleEspNowRole role);
 
 	bool              begin();
-	void              end();
 	bool              setServerMac(uint8_t *mac);
 	bool              setServerMac(String address);	
+	bool              setPairingMac(uint8_t *mac);		
 	bool 			  sendMessage(char *message, String address = "");
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);

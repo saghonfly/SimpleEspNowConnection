@@ -13,14 +13,14 @@ SimpleEspNowConnection		KEYWORD1
 
 
 begin						KEYWORD2
-end							KEYWORD2
+setServerMac				KEYWORD2
+setPairingMac				KEYWORD2
+sendMessage					KEYWORD2
+setPairingBlinkPort			KEYWORD2
 startPairing				KEYWORD2
 endPairing					KEYWORD2
-setBroadcastMac				KEYWORD2
-setCryptKey					KEYWORD2
+onMessage					KEYWORD2
 onNewGatewayAddress			KEYWORD2
-sendMessage					KEYWORD2
-strToMac					KEYWORD2
 macToStr					KEYWORD2
 
 #######################################

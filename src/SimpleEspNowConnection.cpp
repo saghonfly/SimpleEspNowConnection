@@ -256,6 +256,13 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 	}
 }
 
+bool SimpleEspNowConnection::setPairingMac(uint8_t *mac)
+{
+	memcpy(_pairingMac, mac, 6);
+	
+	return true;
+}
+
 bool SimpleEspNowConnection::setServerMac(String address)
 {
 	if(address.length() != 12)
