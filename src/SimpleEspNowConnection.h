@@ -20,6 +20,7 @@ class SimpleEspNowConnection
 {   
   public:
 	typedef std::function<void(uint8_t*, const char*)> MessageFunction;	
+	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
@@ -28,8 +29,12 @@ class SimpleEspNowConnection
 	bool              setServerMac(uint8_t *mac);
 	bool              setServerMac(String address);	
 	bool 			  sendMessage(char *message, String address = "");
+	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
+	bool 			  startPairing(int timeoutSec = 0);
+	bool 			  endPairing();
 
 	void              onMessage(MessageFunction fn);
+	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
 
@@ -38,7 +43,6 @@ class SimpleEspNowConnection
   private:    
 	SimpleEspNowRole_t    _role;
 	  
-	//uint8_t _broadcastMac[6] = {0x46, 0x33, 0x33, 0x33, 0x33, 0x33};  
 	uint8_t _pairingMac[6] {0xCE, 0x50, 0xE3, 0x15, 0xB7, 0x34}; // MAC ADDRESS WHEN CLIENT IS LISTENING FOR PAIRING
 	uint8_t _myAddress[6];
 	uint8_t _serverMac[6];
@@ -50,8 +54,20 @@ class SimpleEspNowConnection
 	uint8_t* strToMac(const char* str);	
 	
 	static void onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len);
+	static void pairingTickerServer();
+	static void pairingTickerClient();
+	static void pairingTickerLED();
+	
+	Ticker _pairingTicker, _pairingTickerBlink;	
+	volatile bool _pairingOngoing;
+	volatile int _pairingCounter;
+	volatile int _pairingMaxCount;
+
+	int _pairingGPIO = -1;	
+	int _pairingInvers = true;	
 
 	MessageFunction					_MessageFunction = NULL;	
+	NewGatewayAddressFunction 		_NewGatewayAddressFunction = NULL;	
 };
 
 static SimpleEspNowConnection *simpleEspNowConnection = NULL;

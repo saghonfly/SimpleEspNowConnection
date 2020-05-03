@@ -1,15 +1,17 @@
 #include "SimpleEspNowConnection.h"
 
-#define DEBUG
+// #define DEBUG
 
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 
 {
 	this->_role = role;
 	simpleEspNowConnection = this;
-	WiFi.persistent(false);
+	this->_pairingOngoing = false;
 	
 	WiFi.mode(WIFI_STA);
+	WiFi.persistent(false);
+	WiFi.macAddress(_myAddress);	
 }
 
 bool SimpleEspNowConnection::begin()
@@ -31,6 +33,141 @@ bool SimpleEspNowConnection::begin()
 	{
 		initClient();
 	}
+	
+	return true;
+}
+
+bool SimpleEspNowConnection::setPairingBlinkPort(int pairingGPIO, bool invers)
+{
+	_pairingGPIO = pairingGPIO;
+	_pairingInvers = invers;
+	
+    pinMode(_pairingGPIO, OUTPUT);
+    digitalWrite(_pairingGPIO, _pairingInvers); 
+	
+	return true;
+}
+
+void SimpleEspNowConnection::pairingTickerServer()
+{
+#ifdef DEBUG
+    Serial.println("EspNowConnection::Pairing request sent..."+
+		String(simpleEspNowConnection->_pairingCounter+1)+"/"+
+		String(simpleEspNowConnection->_pairingMaxCount));
+#endif
+
+    esp_now_send(simpleEspNowConnection->_pairingMac, 
+		simpleEspNowConnection->_myAddress, 
+		6);
+	
+	if(simpleEspNowConnection->_pairingMaxCount > 0)
+	{
+		simpleEspNowConnection->_pairingCounter++;
+		if(simpleEspNowConnection->_pairingCounter >= simpleEspNowConnection->_pairingMaxCount)
+		{
+			simpleEspNowConnection->endPairing();
+		}
+	}
+}
+
+void SimpleEspNowConnection::pairingTickerClient()
+{
+    digitalWrite(simpleEspNowConnection->_pairingGPIO, simpleEspNowConnection->_pairingInvers);
+	simpleEspNowConnection->endPairing();
+    simpleEspNowConnection->_pairingTickerBlink.detach();
+	
+    wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
+}
+
+void SimpleEspNowConnection::pairingTickerLED()
+{	
+  if(simpleEspNowConnection->_pairingOngoing)
+  {
+    int state = digitalRead(simpleEspNowConnection->_pairingGPIO);
+    digitalWrite(simpleEspNowConnection->_pairingGPIO, !state); 
+  }
+  else
+  {
+    digitalWrite(simpleEspNowConnection->_pairingGPIO, simpleEspNowConnection->_pairingInvers);
+    simpleEspNowConnection->_pairingTickerBlink.detach();
+  }
+}
+
+bool SimpleEspNowConnection::startPairing(int timeoutSec)
+{	
+	if(_pairingOngoing) return false;
+	
+	if(timeoutSec > 0 && timeoutSec < 5)
+		timeoutSec = 5;
+	
+	if(this->_role == SimpleEspNowRole::SERVER)
+	{
+#ifdef DEBUG
+		Serial.println("SimpleEspNowConnection::Server Pairing started");
+#endif	
+
+		_pairingOngoing = true;
+		_pairingCounter = 0;
+		if(timeoutSec > 0)
+		{
+			_pairingMaxCount = timeoutSec / 5;
+		}
+		else
+		{
+			_pairingMaxCount = 0;
+		}
+
+		_pairingTicker.attach(5.0, SimpleEspNowConnection::pairingTickerServer);   
+		
+		if(_pairingGPIO != -1)
+		{
+			_pairingTickerBlink.attach(0.5, pairingTickerLED);            
+		}
+	}
+	else
+	{
+#ifdef DEBUG
+		Serial.println("SimpleEspNowConnection::Client Pairing started");
+#endif			
+		
+		_pairingOngoing = true;
+
+		wifi_set_macaddr(STATION_IF, &_pairingMac[0]);
+
+		if(timeoutSec == 0)
+			timeoutSec = 30;
+		else if(timeoutSec < 10)
+			timeoutSec = 10;
+		else if(timeoutSec > 120)
+			timeoutSec = 120;
+
+		_pairingTicker.attach(timeoutSec, SimpleEspNowConnection::pairingTickerClient);   
+
+		if(_pairingGPIO != -1)
+		{
+			_pairingTickerBlink.attach(0.5, pairingTickerLED);            
+		}
+	}
+	
+	return true;
+}
+
+bool SimpleEspNowConnection::endPairing()
+{
+	_pairingOngoing = false;
+    _pairingTicker.detach();
+	_pairingTickerBlink.detach();
+
+	if(_pairingGPIO != -1)
+		digitalWrite(_pairingGPIO, _pairingInvers);
+	
+	
+#ifdef DEBUG
+	if(_role == SimpleEspNowRole::SERVER)
+		Serial.println("EspNowConnection::Server Pairing endet");
+	else
+		Serial.println("EspNowConnection::Client Pairing endet");		
+#endif	
 	
 	return true;
 }
@@ -85,20 +222,38 @@ String SimpleEspNowConnection::macToStr(const uint8_t* mac)
 
 void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len) 
 {
-	if(simpleEspNowConnection->_MessageFunction)
+	if(simpleEspNowConnection->_role == SimpleEspNowRole::CLIENT &&
+		simpleEspNowConnection->_pairingOngoing)
 	{
-		char buffer[len+1];
-		buffer[len] = 0;
-		
-		memcpy(buffer, data, len);
-		
-		simpleEspNowConnection->_MessageFunction(mac, buffer);
+		if(simpleEspNowConnection->_NewGatewayAddressFunction)
+		{
+			char buffer[len+1];
+			buffer[len] = 0;
+			
+			memcpy(buffer, data, len);
+			
+			wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
+			
+			simpleEspNowConnection->endPairing();
+			simpleEspNowConnection->_NewGatewayAddressFunction(mac, String(simpleEspNowConnection->macToStr(data)));			
+		}
 	}
-	
+	else
+	{
+		if(simpleEspNowConnection->_MessageFunction)
+		{
+			char buffer[len+1];
+			buffer[len] = 0;
+			
+			memcpy(buffer, data, len);
+			
+			simpleEspNowConnection->_MessageFunction(mac, buffer);
+		}
+		
 #ifdef DEBUG
-	Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr(mac));
+		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr(mac));
 #endif	
-
+	}
 }
 
 bool SimpleEspNowConnection::setServerMac(String address)
@@ -135,6 +290,11 @@ bool SimpleEspNowConnection::setServerMac(uint8_t *mac)
 void SimpleEspNowConnection::onMessage(MessageFunction fn)
 {
 	_MessageFunction = fn;
+}
+
+void SimpleEspNowConnection::onNewGatewayAddress(NewGatewayAddressFunction fn)
+{
+	_NewGatewayAddressFunction = fn;
 }
 
 bool SimpleEspNowConnection::initServer()
