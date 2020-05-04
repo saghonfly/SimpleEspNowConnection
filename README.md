@@ -12,7 +12,10 @@ The library comes with a number of example sketches. See File > Examples > Simpl
 - Encryption/Decryption of payload is not implemented.
 - Maximum number of bytes which can be send is limited to 240
 
+
 ## Features
+
+- In theory, infinite number of clients can be used
 
 
 ## Licence
