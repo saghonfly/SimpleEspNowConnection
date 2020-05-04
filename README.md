@@ -9,7 +9,7 @@ The library comes with a number of example sketches. See File > Examples > Simpl
 
 ## Limitation
 
-- Encryption/Decryption of payload is not implemented.
+- Encryption/Decryption of payload is not implemented yet.
 - Maximum number of bytes which can be send is limited to 240
 
 
