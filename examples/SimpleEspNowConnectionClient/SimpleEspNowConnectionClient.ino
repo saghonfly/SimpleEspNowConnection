@@ -1,9 +1,37 @@
+/*
+  SimpleEspNowConnectionClient
+
+  Basic EspNowConnection Client implementation
+
+  HOWTO Arduino IDE:
+  - Prepare two ESP8266 based devices (eg. WeMos)
+  - Start two separate instances of Arduino IDE and load 
+    on the first one the 'SimpleEspNowConnectionServer.ino' and
+    on the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
+    these to the two ESP devices.
+  - Start the 'Serial Monitor' in both instances and set baud rate to 9600
+  - Type 'startpair' into the edit box of the 'Serial Monitor' and hit Enter key (or press 'Send' button)
+  - After devices are paired, type 'sendtest' into the edit box 
+    of the 'Serial Monitor' and hit Enter key (or press 'Send' button)
+
+  - You can use multiple clients which can be connected to one server
+
+  Created 04 Mai 2020
+  By Erich O. Pintar
+  Modified 04 Mai 2020
+  By Erich O. Pintar
+
+  https://github.com/saghonfly/SimpleEspNowConnection
+
+*/
+
+
 #include "SimpleEspNowConnection.h"
 
 SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 
 String inputString;
-String serverAddress = "ECFABCC08CDA";
+String serverAddress;
 
 void OnMessage(uint8_t* ad, const char* message)
 {
@@ -12,22 +40,21 @@ void OnMessage(uint8_t* ad, const char* message)
 
 void OnNewGatewayAddress(uint8_t *ga, String ad)
 {  
-  Serial.println("EspNowConnection : New GatewayAddress '"+ad+"' gotten! ");
+  Serial.println("New GatewayAddress '"+ad+"'");
 
   simpleEspConnection.setServerMac(ga);
-
-  simpleEspConnection.sendMessage("PAIRED");  
 }
 
 void setup() 
 {
   Serial.begin(9600);
-
+  Serial.println();
 
   simpleEspConnection.begin();
   simpleEspConnection.setPairingBlinkPort(2);  
 
-//  simpleEspConnection.setServerMac(serverAddress);
+  // serverAddress = "ECFABCC08CDA"; // Test if you know the server
+  // simpleEspConnection.setServerMac(serverAddress);
   simpleEspConnection.onNewGatewayAddress(&OnNewGatewayAddress);    
   simpleEspConnection.onMessage(&OnMessage);  
 
@@ -59,7 +86,7 @@ void loop()
       }      
       else if(inputString == "sendtest")
       {
-         simpleEspConnection.sendMessage("das kommt vom client");
+         simpleEspConnection.sendMessage("This comes from the Client");
       }
       
       inputString = "";
