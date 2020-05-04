@@ -1,6 +1,6 @@
 #include "SimpleEspNowConnection.h"
 
-#define DEBUG
+//#define DEBUG
 
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 

@@ -1,6 +1,6 @@
 {
   "name": "SimpleEspNowConnection",
-  "keywords": "espnow, pairing",
+  "keywords": "espnow, pairing, communication",
   "description": "ESP8266 Library for EspNow connections and pairing",
   "repository":
   {
@@ -16,7 +16,8 @@
       "maintainer": true
     },
   ],
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "examples": "examples/*/*.ino",
   "frameworks": "arduino",
   "platforms": "*"
 }
