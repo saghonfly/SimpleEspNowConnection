@@ -20,27 +20,29 @@ class SimpleEspNowConnection
   public:
 	typedef std::function<void(uint8_t*, const char*)> MessageFunction;	
 	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
+	typedef std::function<void(uint8_t*, String)> PairedFunction;	
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
 	bool              begin();
-	bool              setServerMac(uint8_t *mac);
+	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
-	bool              setPairingMac(uint8_t *mac);		
-	bool 			  sendMessage(char *message, String address = "");
+	bool              setPairingMac(uint8_t* mac);		
+	bool 			  sendMessage(char* message, String address = "");
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
 
 	void              onMessage(MessageFunction fn);
 	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
+	void 			  onPaired(PairedFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
 
   protected:    
 	typedef enum SimpleEspNowMessageType
 	{
-	  DATA = 0, PAIR = 1
+	  DATA = 1, PAIR = 2
 	} SimpleEspNowMessageType_t;
 	
   private:    
@@ -71,6 +73,7 @@ class SimpleEspNowConnection
 
 	MessageFunction					_MessageFunction = NULL;	
 	NewGatewayAddressFunction 		_NewGatewayAddressFunction = NULL;	
+	PairedFunction 					_PairedFunction = NULL;	
 };
 
 static SimpleEspNowConnection *simpleEspNowConnection = NULL;

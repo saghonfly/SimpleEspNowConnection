@@ -21,6 +21,7 @@ startPairing				KEYWORD2
 endPairing					KEYWORD2
 onMessage					KEYWORD2
 onNewGatewayAddress			KEYWORD2
+onPaired					KEYWORD2
 macToStr					KEYWORD2
 
 #######################################

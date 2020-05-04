@@ -1,6 +1,6 @@
 #include "SimpleEspNowConnection.h"
 
-// #define DEBUG
+#define DEBUG
 
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 
@@ -56,9 +56,18 @@ void SimpleEspNowConnection::pairingTickerServer()
 		String(simpleEspNowConnection->_pairingMaxCount));
 #endif
 
+	char sendMessage[9];
+	
+	sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
+	sendMessage[1] = 1;	// 1st package
+	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+	sendMessage[8] = 0;
+	
+	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
+
     esp_now_send(simpleEspNowConnection->_pairingMac, 
-		simpleEspNowConnection->_myAddress, 
-		6);
+		(uint8_t *)sendMessage, 
+		9);
 	
 	if(simpleEspNowConnection->_pairingMaxCount > 0)
 	{
@@ -172,22 +181,35 @@ bool SimpleEspNowConnection::endPairing()
 	return true;
 }
 
-bool SimpleEspNowConnection::sendMessage(char *message, String address)
+bool SimpleEspNowConnection::sendMessage(char* message, String address)
 {
+	if(strlen(message) > 140)
+		return false;
+
+	char sendMessage[strlen(message)+3];
+	
+	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
+	sendMessage[1] = 1;	// 1st package
+	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+	sendMessage[strlen(message)+2] = 0;
+	
+	memcpy(sendMessage+2, message, strlen(message));
+	
 	if(_role == SimpleEspNowRole::SERVER)
 	{
 		if(address.length() != 12)
 			return false;
 
+
 		uint8_t *mac = strToMac(address.c_str());
 
-		esp_now_send(mac, (uint8_t *) message, strlen(message));
+		esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
 
 		delete mac;
 	}
 	else
 	{
-		esp_now_send(_serverMac, (uint8_t *) message, strlen(message));
+		esp_now_send(_serverMac, (uint8_t *) sendMessage, strlen(sendMessage));
 	}
 	
 	return true;
@@ -222,32 +244,47 @@ String SimpleEspNowConnection::macToStr(const uint8_t* mac)
 
 void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len) 
 {
+	if(len <= 3)
+		return;
+	
+	char buffer[len-3];
+	buffer[len-2] = 0;
+	
+	memcpy(buffer, data+2, len-2);
+	
 	if(simpleEspNowConnection->_role == SimpleEspNowRole::CLIENT &&
 		simpleEspNowConnection->_pairingOngoing)
 	{
-		if(simpleEspNowConnection->_NewGatewayAddressFunction)
+		if(data[0] == SimpleEspNowMessageType::PAIR)			
 		{
-			char buffer[len+1];
-			buffer[len] = 0;
-			
-			memcpy(buffer, data, len);
-			
-			wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
-			
-			simpleEspNowConnection->endPairing();
-			simpleEspNowConnection->_NewGatewayAddressFunction(mac, String(simpleEspNowConnection->macToStr(data)));			
+			if(simpleEspNowConnection->_NewGatewayAddressFunction)
+			{
+				wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
+				
+				simpleEspNowConnection->endPairing();
+				simpleEspNowConnection->_NewGatewayAddressFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));
+				
+				char sendMessage[9];
+				
+				sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
+				sendMessage[1] = 1;	// 1st package
+				sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+				sendMessage[8] = 0;
+				
+				memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
+				
+				esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
+			}
 		}
 	}
 	else
 	{
 		if(simpleEspNowConnection->_MessageFunction)
 		{
-			char buffer[len+1];
-			buffer[len] = 0;
-			
-			memcpy(buffer, data, len);
-			
-			simpleEspNowConnection->_MessageFunction(mac, buffer);
+			if(data[0] == SimpleEspNowMessageType::DATA)			
+				simpleEspNowConnection->_MessageFunction(mac, buffer);
+			else if(data[0] == SimpleEspNowMessageType::PAIR)			
+				simpleEspNowConnection->_PairedFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
 		}
 		
 #ifdef DEBUG
@@ -256,7 +293,7 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 	}
 }
 
-bool SimpleEspNowConnection::setPairingMac(uint8_t *mac)
+bool SimpleEspNowConnection::setPairingMac(uint8_t* mac)
 {
 	memcpy(_pairingMac, mac, 6);
 	
@@ -280,7 +317,7 @@ bool SimpleEspNowConnection::setServerMac(String address)
 	return true;
 }
 
-bool SimpleEspNowConnection::setServerMac(uint8_t *mac)
+bool SimpleEspNowConnection::setServerMac(uint8_t* mac)
 {
 	if(this->_role == SimpleEspNowRole::SERVER)
 		return false;
@@ -292,6 +329,11 @@ bool SimpleEspNowConnection::setServerMac(uint8_t *mac)
 #endif
 
 	return true;
+}
+
+void SimpleEspNowConnection::onPaired(PairedFunction fn)
+{
+	_PairedFunction = fn;
 }
 
 void SimpleEspNowConnection::onMessage(MessageFunction fn)
