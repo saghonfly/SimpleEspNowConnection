@@ -1,5 +1,5 @@
 /*
-  SimpleEspNowConnection.cpp - A simple EspNow connecteion and pairing class.
+  SimpleEspNowConnection.cpp - A simple EspNow connection and pairing class.
   Erich O. Pintar
   https://pintarweb.net
 */

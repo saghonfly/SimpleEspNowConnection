@@ -1,5 +1,5 @@
 /*
-  SimpleEspNowConnection.h - A simple EspNow connecteion and pairing class.
+  SimpleEspNowConnection.h - A simple EspNow connection and pairing class.
   Erich O. Pintar
   https://pintarweb.net
 */
