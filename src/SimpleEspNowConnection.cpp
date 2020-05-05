@@ -1,7 +1,12 @@
+/*
+  SimpleEspNowConnection.cpp - A simple EspNow connecteion and pairing class.
+  Erich O. Pintar
+  https://pintarweb.net
+*/
+
 #include "SimpleEspNowConnection.h"
 
 //#define DEBUG
-
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 
 {
