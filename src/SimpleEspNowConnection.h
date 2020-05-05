@@ -1,3 +1,9 @@
+/*
+  SimpleEspNowConnection.h - A simple EspNow connecteion and pairing class.
+  Erich O. Pintar
+  https://pintarweb.net
+*/
+
 #ifndef SIMPLEESPNOWCONNECTION_H
 #define SIMPLEESPNOWCONNECTION_H
 #include <Arduino.h>
