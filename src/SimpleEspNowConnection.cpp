@@ -288,8 +288,16 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 		{
 			if(data[0] == SimpleEspNowMessageType::DATA)			
 				simpleEspNowConnection->_MessageFunction(mac, buffer);
-			else if(data[0] == SimpleEspNowMessageType::PAIR)			
+		}
+		if(simpleEspNowConnection->_PairedFunction)
+		{		
+			if(data[0] == SimpleEspNowMessageType::PAIR)			
 				simpleEspNowConnection->_PairedFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
+		}
+		if(simpleEspNowConnection->_ConnectedFunction)
+		{
+			if(data[0] == SimpleEspNowMessageType::CONNECT)
+				simpleEspNowConnection->_ConnectedFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
 		}
 		
 #ifdef DEBUG
@@ -333,6 +341,18 @@ bool SimpleEspNowConnection::setServerMac(uint8_t* mac)
 	Serial.println("EspNowConnection::setServerMac to "+simpleEspNowConnection->macToStr(_serverMac));
 #endif
 
+	char sendMessage[9];
+	
+	sendMessage[0] = SimpleEspNowMessageType::CONNECT;	// Type of message
+	sendMessage[1] = 1;	// 1st package
+	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+	sendMessage[8] = 0;
+	
+	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
+	
+	esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
+	
+
 	return true;
 }
 
@@ -349,6 +369,11 @@ void SimpleEspNowConnection::onMessage(MessageFunction fn)
 void SimpleEspNowConnection::onNewGatewayAddress(NewGatewayAddressFunction fn)
 {
 	_NewGatewayAddressFunction = fn;
+}
+
+void SimpleEspNowConnection::onConnected(ConnectedFunction fn)
+{
+	_ConnectedFunction = fn;
 }
 
 bool SimpleEspNowConnection::initServer()

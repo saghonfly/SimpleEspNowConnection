@@ -27,6 +27,7 @@ class SimpleEspNowConnection
 	typedef std::function<void(uint8_t*, const char*)> MessageFunction;	
 	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
 	typedef std::function<void(uint8_t*, String)> PairedFunction;	
+	typedef std::function<void(uint8_t*, String)> ConnectedFunction;	
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
@@ -42,13 +43,14 @@ class SimpleEspNowConnection
 	void              onMessage(MessageFunction fn);
 	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
 	void 			  onPaired(PairedFunction fn);
+	void 			  onConnected(ConnectedFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
 
   protected:    
 	typedef enum SimpleEspNowMessageType
 	{
-	  DATA = 1, PAIR = 2
+	  DATA = 1, PAIR = 2, CONNECT = 3
 	} SimpleEspNowMessageType_t;
 	
   private:    
@@ -80,6 +82,7 @@ class SimpleEspNowConnection
 	MessageFunction					_MessageFunction = NULL;	
 	NewGatewayAddressFunction 		_NewGatewayAddressFunction = NULL;	
 	PairedFunction 					_PairedFunction = NULL;	
+	ConnectedFunction				_ConnectedFunction = NULL;
 };
 
 static SimpleEspNowConnection *simpleEspNowConnection = NULL;
