@@ -15,7 +15,7 @@ The library comes with a number of example sketches. See File > Examples > Simpl
 
 ## Features
 
-- In theory, infinite number of clients can be used
+- In theory, infinite number of clients can be used to communicate with one server
 
 
 ## Licence
