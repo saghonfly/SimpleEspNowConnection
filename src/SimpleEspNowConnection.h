@@ -28,6 +28,7 @@ class SimpleEspNowConnection
 	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
 	typedef std::function<void(uint8_t*, String)> PairedFunction;	
 	typedef std::function<void(uint8_t*, String)> ConnectedFunction;	
+	typedef std::function<void(void)> PairingFinishedFunction;	
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
@@ -44,6 +45,7 @@ class SimpleEspNowConnection
 	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
 	void 			  onPaired(PairedFunction fn);
 	void 			  onConnected(ConnectedFunction fn);
+	void 			  onPairingFinished(PairingFinishedFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
 
@@ -83,6 +85,7 @@ class SimpleEspNowConnection
 	NewGatewayAddressFunction 		_NewGatewayAddressFunction = NULL;	
 	PairedFunction 					_PairedFunction = NULL;	
 	ConnectedFunction				_ConnectedFunction = NULL;
+	PairingFinishedFunction			_PairingFinishedFunction = NULL;
 };
 
 static SimpleEspNowConnection *simpleEspNowConnection = NULL;
