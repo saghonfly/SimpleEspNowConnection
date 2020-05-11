@@ -86,7 +86,16 @@ void loop()
       }      
       else if(inputString == "sendtest")
       {
-         simpleEspConnection.sendMessage("This comes from the Client");
+        // Be careful with sendMessage since it is blocking till ACK from partner is 
+        // received or timeout is reached
+        if(!simpleEspConnection.sendMessage("This comes from the Client", 100)) // 100 milliseconds timeout
+        {
+          Serial.println("Server did not respond in time!");
+        }
+        else
+        {
+          Serial.println("Message succesfully sent to server");
+        }
       }
       
       inputString = "";

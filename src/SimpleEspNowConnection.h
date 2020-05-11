@@ -41,7 +41,8 @@ class SimpleEspNowConnection
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
-	bool 			  sendMessage(char* message, String address = "");
+	bool 			  sendMessage(char* message, long timeout = ACKTimeout);
+	bool 			  sendMessage(char* message, String address, long timeout = ACKTimeout);
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
@@ -72,6 +73,7 @@ class SimpleEspNowConnection
 	bool initClient();	
 	
 	uint8_t* strToMac(const char* str);	
+	void replyACK(uint8_t* mac);
 	
 	static void onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len);
 	static void pairingTickerServer();
@@ -82,6 +84,8 @@ class SimpleEspNowConnection
 	volatile bool _pairingOngoing;
 	volatile int _pairingCounter;
 	volatile int _pairingMaxCount;
+	long sendTimeout;
+	volatile bool sendWaitOngoing;
 
 	int _pairingGPIO = -1;	
 	int _pairingInvers = true;	

@@ -92,11 +92,11 @@ void loop()
       {
         // Be careful with sendMessage since it is blocking till ACK from partner is 
         // received or timeout is reached
-        if(!simpleEspConnection.sendMessage("This comes from the server", clientAddress))
+        if(!simpleEspConnection.sendMessage("This comes from the server", clientAddress)) // default timeout of 1000 milliseconds
         {
           Serial.println("Client did not respond in time!");          
         }
-        else 
+        else
         {
           Serial.println("Message succesfully sent to client");
         }
