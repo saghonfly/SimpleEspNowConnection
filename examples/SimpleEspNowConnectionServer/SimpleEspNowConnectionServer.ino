@@ -18,7 +18,7 @@
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 04 Mai 2020
+  Modified 11 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -90,7 +90,16 @@ void loop()
       }      
       else if(inputString == "sendtest")
       {
-         simpleEspConnection.sendMessage("This comes from the server", clientAddress);
+        // Be careful with sendMessage since it is blocking till ACK from partner is 
+        // received or timeout is reached
+        if(!simpleEspConnection.sendMessage("This comes from the server", clientAddress))
+        {
+          Serial.println("Client did not respond in time!");          
+        }
+        else 
+        {
+          Serial.println("Message succesfully sent to client");
+        }
       }
       
       inputString = "";

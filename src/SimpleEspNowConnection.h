@@ -1,6 +1,10 @@
 /*
   SimpleEspNowConnection.h - A simple EspNow connection and pairing class.
   Erich O. Pintar
+  
+  Created  		: 04 Mai 2020
+  Last Modified : 11 Mai 2020
+  
   https://pintarweb.net
 */
 
@@ -15,6 +19,7 @@ extern "C" {
 #include <user_interface.h>
 }
 
+#define ACKTimeout	1000	// 1 second timeout at sendMessage for ACK from partner
 
 typedef enum SimpleEspNowRole 
 {
@@ -52,7 +57,7 @@ class SimpleEspNowConnection
   protected:    
 	typedef enum SimpleEspNowMessageType
 	{
-	  DATA = 1, PAIR = 2, CONNECT = 3
+	  DATA = 1, PAIR = 2, CONNECT = 3, ACK = 255
 	} SimpleEspNowMessageType_t;
 	
   private:    

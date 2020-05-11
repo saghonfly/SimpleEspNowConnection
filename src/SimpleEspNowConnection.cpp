@@ -1,6 +1,10 @@
 /*
   SimpleEspNowConnection.cpp - A simple EspNow connection and pairing class.
   Erich O. Pintar
+  
+  Created  		: 04 Mai 2020
+  Last Modified : 11 Mai 2020
+  
   https://pintarweb.net
 */
 
@@ -64,8 +68,8 @@ void SimpleEspNowConnection::pairingTickerServer()
 	char sendMessage[9];
 	
 	sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
-	sendMessage[1] = 1;	// 1st package
-	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+	sendMessage[1] = 1;	// 1st package ...
+	sendMessage[2] = 1;	// ... of 1 package. Will be enhanced in one of the next versions
 	sendMessage[8] = 0;
 	
 	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
@@ -199,8 +203,8 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 	char sendMessage[strlen(message)+3];
 	
 	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
-	sendMessage[1] = 1;	// 1st package
-	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+	sendMessage[1] = 1;	// 1st package ...
+	sendMessage[2] = 1;	// ... of 1 package. WIll be enhanced in one of the next versions
 	sendMessage[strlen(message)+2] = 0;
 	
 	memcpy(sendMessage+2, message, strlen(message));

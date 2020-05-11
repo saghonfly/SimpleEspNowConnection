@@ -18,7 +18,7 @@
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 04 Mai 2020
+  Modified 11 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
