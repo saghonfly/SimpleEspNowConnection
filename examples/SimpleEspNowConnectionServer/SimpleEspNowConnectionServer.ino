@@ -1,7 +1,7 @@
 /*
   SimpleEspNowConnectionServer
 
-  Basic EspNowConnection Server implementation
+  Basic EspNowConnection Server implementation for a sensor server (gateway)
 
   HOWTO Arduino IDE:
   - Prepare two ESP8266 based devices (eg. WeMos)
@@ -10,7 +10,7 @@
     on the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
     these to the two ESP devices.
   - Start the 'Serial Monitor' in both instances and set baud rate to 9600
-  - Type 'startpair' into the edit box of the 'Serial Monitor' and hit Enter key (or press 'Send' button)
+  - Type 'startpair' into the edit box of both 'Serial Monitors' and hit Enter key (or press 'Send' button)
   - After devices are paired, type 'sendtest' into the edit box 
     of the 'Serial Monitor' and hit Enter key (or press 'Send' button)
 
