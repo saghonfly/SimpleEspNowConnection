@@ -7,7 +7,7 @@
   - Mount two jumper/pushbuttons, one between GPIO13 and ground and one between
     GPIO12 and ground
   - Connect GPIO16 with RST
-  - Take a look on 'https://github.com/saghonfly/SimpleEspNowConnection/wiki/Hardware-Setup-'SensorClientDigitalInput'-Example'
+  - Take a look on "https://github.com/saghonfly/SimpleEspNowConnection/wiki/Hardware-Setup-'SensorClientDigitalInput'-Example"
   
 
   HOWTO Arduino IDE:
