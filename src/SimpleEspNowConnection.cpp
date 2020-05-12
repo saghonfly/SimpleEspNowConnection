@@ -183,6 +183,11 @@ bool SimpleEspNowConnection::endPairing()
 	else
 		Serial.println("EspNowConnection::Client Pairing endet");		
 #endif	
+
+	if(_PairingFinishedFunction != NULL)
+	{
+		_PairingFinishedFunction();
+	}
 	
 	return true;
 }
@@ -390,6 +395,11 @@ void SimpleEspNowConnection::onNewGatewayAddress(NewGatewayAddressFunction fn)
 void SimpleEspNowConnection::onConnected(ConnectedFunction fn)
 {
 	_ConnectedFunction = fn;
+}
+
+void SimpleEspNowConnection::onPairingFinished(PairingFinishedFunction fn)
+{
+	_PairingFinishedFunction = fn;
 }
 
 void SimpleEspNowConnection::onSendError(SendErrorFunction fn)
