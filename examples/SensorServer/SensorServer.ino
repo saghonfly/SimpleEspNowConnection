@@ -1,24 +1,25 @@
 /*
-  SimpleEspNowConnectionServer
-
-  Basic EspNowConnection Server implementation
+  SensorServer
+  
+  Basic EspNowConnection Server implementation for a sensor server (gateway)
 
   HOWTO Arduino IDE:
   - Prepare two ESP8266 based devices (eg. WeMos)
   - Start two separate instances of Arduino IDE and load 
     on the first one the 'SensorServer.ino' and
-    on the second one the 'SensorClient.ino' sketch and upload 
+    on the second one the 'SensorClientDigitalInput.ino' sketch and upload 
     these to the two ESP devices.
   - Start the 'Serial Monitor' in both instances and set baud rate to 9600
-  - Type 'startpair' into the edit box of both 'Serial Monitors' and hit Enter key (or press 'Send' button)
-  - After devices are paired, type 'sendtest' into the edit box 
-    of the 'Serial Monitor' and hit Enter key (or press 'Send' button)
-
+  - Type 'startpair' into the edit box of the server. Hold the pairing button on the sensor and reset the device
+  - After server and client are paired, you can change the sleep time of the client in the server
+    by typing 'settimeout <seconds>' into the serial terminal. 
+    This will than be send next time when sensor is up.
+  
   - You can use multiple clients which can be connected to one server
 
   Created 11 Mai 2020
   By Erich O. Pintar
-  Modified 11 Mai 2020
+  Modified 12 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -29,6 +30,7 @@
 
 static SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::SERVER);
 String inputString, clientAddress;
+String newTimeout = "";
 
 void OnSendError(uint8_t* ad)
 {
@@ -49,9 +51,11 @@ void OnPaired(uint8_t *ga, String ad)
 
 void OnConnected(uint8_t *ga, String ad)
 {
-  Serial.println("I will send now a setup message to sensor client...");
-
-  simpleEspConnection.sendMessage("Please reconfigure with following parameter blablabla...",ad );
+  if(newTimeout != "")
+  {
+    simpleEspConnection.sendMessage((char *)(String("timeout:"+newTimeout).c_str()), ad );
+    newTimeout = "";
+  }
 }
 
 void setup() 
@@ -82,6 +86,11 @@ void loop()
         Serial.println("Pairing started...");
         simpleEspConnection.startPairing(120);
       }
+      else if(inputString.substring(0,11) == "settimeout ")
+      {
+        Serial.println("Will set new timeout of client next time when the device goes up...");
+        newTimeout = atoi(inputString.substring(11).c_str());
+      }          
             
       inputString = "";
     }

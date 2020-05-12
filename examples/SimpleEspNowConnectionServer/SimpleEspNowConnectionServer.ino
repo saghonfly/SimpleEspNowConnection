@@ -1,7 +1,7 @@
 /*
   SimpleEspNowConnectionServer
 
-  Basic EspNowConnection Server implementation for a sensor server (gateway)
+  Basic EspNowConnection Server implementation
 
   HOWTO Arduino IDE:
   - Prepare two ESP8266 based devices (eg. WeMos)
@@ -18,7 +18,7 @@
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 11 Mai 2020
+  Modified 12 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
