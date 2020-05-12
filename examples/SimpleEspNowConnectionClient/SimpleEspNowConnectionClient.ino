@@ -33,6 +33,11 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 
+void OnSendError(uint8_t* ad)
+{
+  Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
+}
+
 void OnMessage(uint8_t* ad, const char* message)
 {
   Serial.println("MESSAGE:"+String(message));
@@ -56,6 +61,7 @@ void setup()
   // serverAddress = "ECFABCC08CDA"; // Test if you know the server
   // simpleEspConnection.setServerMac(serverAddress);
   simpleEspConnection.onNewGatewayAddress(&OnNewGatewayAddress);    
+  simpleEspConnection.onSendError(&OnSendError);  
   simpleEspConnection.onMessage(&OnMessage);  
 
   Serial.println(WiFi.macAddress());  
@@ -86,15 +92,9 @@ void loop()
       }      
       else if(inputString == "sendtest")
       {
-        // Be careful with sendMessage since it is blocking till ACK from partner is 
-        // received or timeout is reached
-        if(!simpleEspConnection.sendMessage("This comes from the Client", 100)) // 100 milliseconds timeout
+        if(!simpleEspConnection.sendMessage("This comes from the Client"))
         {
-          Serial.println("Server did not respond in time!");
-        }
-        else
-        {
-          Serial.println("Message succesfully sent to server");
+          Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }
       }
       

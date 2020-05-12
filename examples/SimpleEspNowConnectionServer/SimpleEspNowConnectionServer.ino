@@ -32,10 +32,18 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::SERVER);
 String inputString;
 String clientAddress;
 
+void OnSendError(uint8_t* ad)
+{
+  Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
+}
 
 void OnMessage(uint8_t* ad, const char* message)
 {
   Serial.println("MESSAGE:'"+String(message)+"' from "+simpleEspConnection.macToStr(ad));
+
+  clientAddress = simpleEspConnection.macToStr(ad);  
+
+  simpleEspConnection.sendMessage("Message at OnMessage from Server", clientAddress);  
 }
 
 void OnPaired(uint8_t *ga, String ad)
@@ -48,6 +56,8 @@ void OnPaired(uint8_t *ga, String ad)
 void OnConnected(uint8_t *ga, String ad)
 {
   Serial.println("EspNowConnection : Client '"+ad+"' connected! ");
+
+  simpleEspConnection.sendMessage("Message at OnConnected from Server", ad);
 }
 
 void setup() 
@@ -55,11 +65,13 @@ void setup()
   Serial.begin(9600);
   Serial.println();
   // clientAddress = "ECFABC0CE7A2"; // Test if you know the client
+//  clientAddress = "A4CF12D5D767";
 
   simpleEspConnection.begin();
   simpleEspConnection.setPairingBlinkPort(2);
   simpleEspConnection.onMessage(&OnMessage);  
   simpleEspConnection.onPaired(&OnPaired);  
+  simpleEspConnection.onSendError(&OnSendError);
   simpleEspConnection.onConnected(&OnConnected);  
 
   Serial.println(WiFi.macAddress());    
@@ -90,15 +102,9 @@ void loop()
       }      
       else if(inputString == "sendtest")
       {
-        // Be careful with sendMessage since it is blocking till ACK from partner is 
-        // received or timeout is reached
-        if(!simpleEspConnection.sendMessage("This comes from the server", clientAddress)) // default timeout of 1000 milliseconds
+        if(!simpleEspConnection.sendMessage("This comes from the server", clientAddress))
         {
-          Serial.println("Client did not respond in time!");          
-        }
-        else
-        {
-          Serial.println("Message succesfully sent to client");
+          Serial.println("SENDING TO '"+clientAddress+"' WAS NOT POSSIBLE!");
         }
       }
       

@@ -31,11 +31,13 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 
 int pairingButton = 13;
 int sensorButton = 12;
+bool pairingMode = false;
+
+String inputString;
+String serverAddress;
 
 String readServerAddressFromEEPROM()
-{
-  String serverAddress;
-  
+{  
   EEPROM.begin(12);
   
   for (int i = 0; i < 12; ++i)
@@ -65,18 +67,25 @@ void writeServerAddressToEEPROM(char *serverAddress)
   EEPROM.end();
 }
 
+void OnSendError(uint8_t* ad)
+{
+  Serial.println("Sending to '"+simpleEspConnection.macToStr(ad)+"' was not possible!");  
+}
+
 void OnMessage(uint8_t* ad, const char* message)
 {
-  Serial.println("MESSAGE:"+String(message));
+  Serial.println("MESSAGE from server:"+String(message));
 }
 
 void OnNewGatewayAddress(uint8_t *ga, String ad)
 {  
-//  Serial.println("New GatewayAddress '"+ad+"'");
-
   writeServerAddressToEEPROM((char *)ad.c_str());
 
   simpleEspConnection.setServerMac(ga);
+
+  Serial.println("Pairing mode finished...");
+
+  pairingMode = false;
 }
 
 void setup() 
@@ -86,10 +95,10 @@ void setup()
 
   simpleEspConnection.begin();
   simpleEspConnection.setPairingBlinkPort(2);  
-  simpleEspConnection.setServerMac(readServerAddressFromEEPROM()); // set the server address which is stored in EEPROM
   simpleEspConnection.onNewGatewayAddress(&OnNewGatewayAddress);    
   simpleEspConnection.onMessage(&OnMessage);  
-  
+  simpleEspConnection.onSendError(&OnSendError);  
+
   // make the pairing pin to input:
   pinMode(pairingButton, INPUT_PULLUP);
 
@@ -99,30 +108,37 @@ void setup()
   // start pairing if button is pressed
   if(pairingButtonState == 0)
   {
+    Serial.println("Pairing mode ongoing...");
+    
+    pairingMode = true;
     simpleEspConnection.startPairing();
   }
   else
   {
+    if(!simpleEspConnection.setServerMac(readServerAddressFromEEPROM())) // set the server address which is stored in EEPROM
+    {
+      Serial.println("!!! Server address not valid. Please pair first !!!");
+      return;
+    }
+    
     // make the sensor pin to input:
     pinMode(sensorButton, INPUT_PULLUP);
 
     String sensorButtonState = digitalRead(sensorButton) == 0 ? "SENSOR:PRESSED" : "SENSOR:UNPRESSED";
 
-    if(simpleEspConnection.sendMessage((char *)sensorButtonState.c_str(), 100))
-    {
-      Serial.println("Sensor state successfully sent");
-    }
-    else
-    {
-      Serial.println("Timeout at sent");
-    }     
+    simpleEspConnection.sendMessage((char *)sensorButtonState.c_str());
   }
 }
 
 void loop() 
-{
-  if(millis() < 500)  // wait half a second for message from server
+{  
+  if(pairingMode) // do not go to sleep if pairing mode is ongoing
     return;
+    
+  if(millis() < 100)  // wait half a second for message from server otherwise go to sleep
+    return;
+
+  Serial.printf("Going to sleep...I was up for %i ms...will come back in 10 seconds\n", millis()); 
 
   ESP.deepSleep(10 * 1000000, RF_NO_CAL); // deep sleep for 10 seconds
   delay(100);          

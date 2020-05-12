@@ -1,22 +1,19 @@
 /*
   SimpleEspNowConnection.cpp - A simple EspNow connection and pairing class.
   Erich O. Pintar
-  
-  Created  		: 04 Mai 2020
-  Last Modified : 11 Mai 2020
-  
   https://pintarweb.net
 */
 
 #include "SimpleEspNowConnection.h"
 
-// #define DEBUG
+//#define DEBUG
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 
 {
 	this->_role = role;
 	simpleEspNowConnection = this;
 	this->_pairingOngoing = false;
+	memset(_serverMac,0,6);
 	
 	WiFi.mode(WIFI_STA);
 	WiFi.persistent(false);
@@ -68,8 +65,8 @@ void SimpleEspNowConnection::pairingTickerServer()
 	char sendMessage[9];
 	
 	sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
-	sendMessage[1] = 1;	// 1st package ...
-	sendMessage[2] = 1;	// ... of 1 package. Will be enhanced in one of the next versions
+	sendMessage[1] = 1;	// 1st package
+	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
 	sendMessage[8] = 0;
 	
 	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
@@ -187,39 +184,44 @@ bool SimpleEspNowConnection::endPairing()
 		Serial.println("EspNowConnection::Client Pairing endet");		
 #endif	
 	
-	if(_PairingFinishedFunction != NULL)
-	{
-		_PairingFinishedFunction();
-	}
-	
 	return true;
 }
 
-bool SimpleEspNowConnection::sendMessage(char* message, long timeout)
+bool SimpleEspNowConnection::sendMessage(char* message, String address)
 {
-	return sendMessage(message, "", timeout);
-}
-
-bool SimpleEspNowConnection::sendMessage(char* message, String address, long timeout)
-{
-	if(strlen(message) > 140)
+	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
+		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ) ||
+		strlen(message) > 140)
+	{
 		return false;
+	}
 
 	char sendMessage[strlen(message)+3];
 	
 	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
-	sendMessage[1] = 1;	// 1st package ...
-	sendMessage[2] = 1;	// ... of 1 package. WIll be enhanced in one of the next versions
+	sendMessage[1] = 1;	// 1st package
+	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
 	sendMessage[strlen(message)+2] = 0;
 	
 	memcpy(sendMessage+2, message, strlen(message));
+
+	esp_now_register_send_cb([](uint8_t* mac, uint8_t sendStatus) 
+	{//this is the function that is called to send data
+#ifdef DEBUG
+	  Serial.printf("send_cb, send done, status = %i\n", sendStatus);
+#endif	
+
+	  if(sendStatus != 0 && simpleEspNowConnection->_SendErrorFunction != NULL)
+	  {
+		  simpleEspNowConnection->_SendErrorFunction(mac);
+	  }
+		  
+	  esp_now_unregister_send_cb();
+	});
+
 	
 	if(_role == SimpleEspNowRole::SERVER)
 	{
-		if(address.length() != 12)
-			return false;
-
-
 		uint8_t *mac = strToMac(address.c_str());
 
 		esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
@@ -230,17 +232,8 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address, long tim
 	{
 		esp_now_send(_serverMac, (uint8_t *) sendMessage, strlen(sendMessage));
 	}
-
-	// set timeout to curent time
-	sendTimeout = millis();
-	sendWaitOngoing = true;
 	
-	while(sendWaitOngoing && millis() < sendTimeout+timeout)
-	{
-		yield();
-	}
-	
-	return sendWaitOngoing ? false : true;
+	return true;
 }
 uint8_t* SimpleEspNowConnection::strToMac(const char* str)
 {
@@ -296,31 +289,21 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 				
 				sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
 				sendMessage[1] = 1;	// 1st package
-				sendMessage[2] = 1;	// from 1 package.
+				sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
 				sendMessage[8] = 0;
 				
 				memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
 				
 				esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
 			}
-		}		
-	}
-	else if(data[0] == SimpleEspNowMessageType::ACK)			
-	{
-#ifdef DEBUG
-		Serial.println("SimpleEspNowConnection::onReceiveData - ACK from "+simpleEspNowConnection->macToStr(mac));
-#endif
-		simpleEspNowConnection->sendWaitOngoing = false;
+		}
 	}
 	else
-	{		
+	{
 		if(simpleEspNowConnection->_MessageFunction)
 		{
-			if(data[0] == SimpleEspNowMessageType::DATA)
-			{
-				simpleEspNowConnection->replyACK(mac);
+			if(data[0] == SimpleEspNowMessageType::DATA)			
 				simpleEspNowConnection->_MessageFunction(mac, buffer);
-			}
 		}
 		if(simpleEspNowConnection->_PairedFunction)
 		{		
@@ -337,22 +320,6 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr(mac));
 #endif	
 	}
-}
-
-void SimpleEspNowConnection::replyACK(uint8_t* mac)
-{
-	char sendMessage[9];
-	
-	sendMessage[0] = SimpleEspNowMessageType::ACK;	// Type of message
-	sendMessage[1] = 1;	// 1st package ...
-	sendMessage[2] = 1;	// ... of 1 package. Will be enhanced in one of the next versions
-	sendMessage[8] = 0;
-	
-	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
-
-    esp_now_send(mac, 
-		(uint8_t *)sendMessage, 
-		9);
 }
 
 bool SimpleEspNowConnection::setPairingMac(uint8_t* mac)
@@ -425,9 +392,9 @@ void SimpleEspNowConnection::onConnected(ConnectedFunction fn)
 	_ConnectedFunction = fn;
 }
 
-void SimpleEspNowConnection::onPairingFinished(PairingFinishedFunction fn)
+void SimpleEspNowConnection::onSendError(SendErrorFunction fn)
 {
-	_PairingFinishedFunction = fn;
+	_SendErrorFunction = fn;
 }
 
 bool SimpleEspNowConnection::initServer()

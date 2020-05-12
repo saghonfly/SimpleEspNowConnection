@@ -24,6 +24,7 @@ onNewGatewayAddress			KEYWORD2
 onPaired					KEYWORD2
 onPairingFinished			KEYWORD2
 onConnected					KEYWORD2
+onSendError					KEYWORD2
 macToStr					KEYWORD2
 
 #######################################

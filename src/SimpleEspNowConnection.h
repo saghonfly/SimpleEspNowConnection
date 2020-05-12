@@ -1,10 +1,6 @@
 /*
   SimpleEspNowConnection.h - A simple EspNow connection and pairing class.
   Erich O. Pintar
-  
-  Created  		: 04 Mai 2020
-  Last Modified : 11 Mai 2020
-  
   https://pintarweb.net
 */
 
@@ -19,7 +15,6 @@ extern "C" {
 #include <user_interface.h>
 }
 
-#define ACKTimeout	1000	// 1 second timeout at sendMessage for ACK from partner
 
 typedef enum SimpleEspNowRole 
 {
@@ -33,7 +28,7 @@ class SimpleEspNowConnection
 	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
 	typedef std::function<void(uint8_t*, String)> PairedFunction;	
 	typedef std::function<void(uint8_t*, String)> ConnectedFunction;	
-	typedef std::function<void(void)> PairingFinishedFunction;	
+	typedef std::function<void(uint8_t*)> SendErrorFunction;	
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
@@ -41,8 +36,7 @@ class SimpleEspNowConnection
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
-	bool 			  sendMessage(char* message, long timeout = ACKTimeout);
-	bool 			  sendMessage(char* message, String address, long timeout = ACKTimeout);
+	bool 			  sendMessage(char* message, String address = "");
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
@@ -51,14 +45,14 @@ class SimpleEspNowConnection
 	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
 	void 			  onPaired(PairedFunction fn);
 	void 			  onConnected(ConnectedFunction fn);
-	void 			  onPairingFinished(PairingFinishedFunction fn);
+	void 			  onSendError(SendErrorFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
 
   protected:    
 	typedef enum SimpleEspNowMessageType
 	{
-	  DATA = 1, PAIR = 2, CONNECT = 3, ACK = 255
+	  DATA = 1, PAIR = 2, CONNECT = 3
 	} SimpleEspNowMessageType_t;
 	
   private:    
@@ -73,7 +67,6 @@ class SimpleEspNowConnection
 	bool initClient();	
 	
 	uint8_t* strToMac(const char* str);	
-	void replyACK(uint8_t* mac);
 	
 	static void onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len);
 	static void pairingTickerServer();
@@ -84,8 +77,6 @@ class SimpleEspNowConnection
 	volatile bool _pairingOngoing;
 	volatile int _pairingCounter;
 	volatile int _pairingMaxCount;
-	long sendTimeout;
-	volatile bool sendWaitOngoing;
 
 	int _pairingGPIO = -1;	
 	int _pairingInvers = true;	
@@ -94,7 +85,7 @@ class SimpleEspNowConnection
 	NewGatewayAddressFunction 		_NewGatewayAddressFunction = NULL;	
 	PairedFunction 					_PairedFunction = NULL;	
 	ConnectedFunction				_ConnectedFunction = NULL;
-	PairingFinishedFunction			_PairingFinishedFunction = NULL;
+	SendErrorFunction				_SendErrorFunction = NULL;
 };
 
 static SimpleEspNowConnection *simpleEspNowConnection = NULL;
