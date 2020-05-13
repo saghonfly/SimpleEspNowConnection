@@ -21,21 +21,25 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 	simpleEspNowConnection = this;
 	this->_pairingOngoing = false;
 	memset(_serverMac,0,6);
-	
-	WiFi.mode(WIFI_STA);
-	WiFi.persistent(false);
-	WiFi.macAddress(_myAddress);	
 }
 
 bool SimpleEspNowConnection::begin()
 {	
+	WiFi.mode(WIFI_STA);	
+
+	WiFi.persistent(false);
+	WiFi.macAddress(_myAddress);	
+
 	if (esp_now_init() != 0) 
 	{
 		Serial.println("Error initializing ESP-NOW");
 		return false;
 	}
 	
+#if defined(ESP8266)
 	esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
+#endif	
+
 	esp_now_register_recv_cb(SimpleEspNowConnection::onReceiveData);
 	
 	if(this->_role == SimpleEspNowRole::SERVER)
@@ -78,9 +82,19 @@ void SimpleEspNowConnection::pairingTickerServer()
 	
 	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
 
+#if defined(ESP32)
+	memcpy(&simpleEspNowConnection->_clientMacPeerInfo.peer_addr, simpleEspNowConnection->_pairingMac, 6);
+	esp_now_add_peer(&simpleEspNowConnection->_clientMacPeerInfo);
+#endif
+
+
     esp_now_send(simpleEspNowConnection->_pairingMac, 
 		(uint8_t *)sendMessage, 
 		9);
+	
+#if defined(ESP32)
+	esp_now_del_peer(simpleEspNowConnection->_pairingMac);
+#endif
 	
 	if(simpleEspNowConnection->_pairingMaxCount > 0)
 	{
@@ -98,7 +112,15 @@ void SimpleEspNowConnection::pairingTickerClient()
 	simpleEspNowConnection->endPairing();
     simpleEspNowConnection->_pairingTickerBlink.detach();
 	
+#if defined(ESP8266)
     wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
+#elif defined(ESP32)	
+	esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
+#endif	
+
+#ifdef DEBUG
+  Serial.println("MAC set to : "+WiFi.macAddress());  
+#endif
 }
 
 void SimpleEspNowConnection::pairingTickerLED()
@@ -154,7 +176,15 @@ bool SimpleEspNowConnection::startPairing(int timeoutSec)
 		
 		_pairingOngoing = true;
 
+#if defined(ESP8266)
 		wifi_set_macaddr(STATION_IF, &_pairingMac[0]);
+#elif defined(ESP32)	
+		esp_wifi_set_mac(ESP_IF_WIFI_STA, &_pairingMac[0]);
+#endif	
+
+#ifdef DEBUG
+		Serial.println("MAC set to : "+WiFi.macAddress());  
+#endif
 
 		if(timeoutSec == 0)
 			timeoutSec = 30;
@@ -217,7 +247,11 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 	
 	memcpy(sendMessage+2, message, strlen(message));
 
+#if defined(ESP8266)
 	esp_now_register_send_cb([](uint8_t* mac, uint8_t sendStatus) 
+#elif defined(ESP32)		
+	esp_now_register_send_cb([] (const uint8_t *mac, esp_now_send_status_t sendStatus)
+#endif	
 	{//this is the function that is called to send data
 #ifdef DEBUG
 	  Serial.printf("send_cb, send done, status = %i\n", sendStatus);
@@ -225,7 +259,7 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 
 	  if(sendStatus != 0 && simpleEspNowConnection->_SendErrorFunction != NULL)
 	  {
-		  simpleEspNowConnection->_SendErrorFunction(mac);
+		  simpleEspNowConnection->_SendErrorFunction((uint8_t*)mac);
 	  }
 		  
 	  esp_now_unregister_send_cb();
@@ -236,7 +270,14 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 	{
 		uint8_t *mac = strToMac(address.c_str());
 
+#if defined(ESP32)
+		memcpy(&simpleEspNowConnection->_clientMacPeerInfo.peer_addr, mac, 6);
+		esp_now_add_peer(&simpleEspNowConnection->_clientMacPeerInfo);
+#endif
 		esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
+#if defined(ESP32)
+		esp_now_del_peer(mac);
+#endif
 
 		delete mac;
 	}
@@ -268,15 +309,22 @@ uint8_t* SimpleEspNowConnection::strToMac(const char* str)
 
 String SimpleEspNowConnection::macToStr(const uint8_t* mac)
 {
-	char macAddr[12];
+	char macAddr[13];
+	macAddr[12] = 0;
 	
-	sprintf(macAddr, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);	
-	
+	sprintf(macAddr, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);		
+
 	return String(macAddr);
 }
 
+
+#if defined(ESP8266)
 void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len) 
+#elif defined(ESP32)
+void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *data, int len)
+#endif
 {
+	
 	if(len <= 3)
 		return;
 	
@@ -292,10 +340,13 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 		{
 			if(simpleEspNowConnection->_NewGatewayAddressFunction)
 			{
+#if defined(ESP8266)
 				wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
-				
+#elif defined(ESP32)
+				esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
+#endif				
 				simpleEspNowConnection->endPairing();
-				simpleEspNowConnection->_NewGatewayAddressFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));
+				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));
 				
 				char sendMessage[9];
 				
@@ -315,21 +366,21 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 		if(simpleEspNowConnection->_MessageFunction)
 		{
 			if(data[0] == SimpleEspNowMessageType::DATA)			
-				simpleEspNowConnection->_MessageFunction(mac, buffer);
+				simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer);
 		}
 		if(simpleEspNowConnection->_PairedFunction)
 		{		
 			if(data[0] == SimpleEspNowMessageType::PAIR)			
-				simpleEspNowConnection->_PairedFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
+				simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
 		}
 		if(simpleEspNowConnection->_ConnectedFunction)
 		{
 			if(data[0] == SimpleEspNowMessageType::CONNECT)
-				simpleEspNowConnection->_ConnectedFunction(mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
+				simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
 		}
 		
 #ifdef DEBUG
-		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr(mac));
+		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr((uint8_t *)mac));
 #endif	
 	}
 }
@@ -377,10 +428,14 @@ bool SimpleEspNowConnection::setServerMac(uint8_t* mac)
 	sendMessage[8] = 0;
 	
 	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
+
+#if defined(ESP32)
+	memcpy(&simpleEspNowConnection->_serverMacPeerInfo.peer_addr, _serverMac, 6);
+	esp_now_add_peer(&simpleEspNowConnection->_serverMacPeerInfo);
+#endif
 	
 	esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
 	
-
 	return true;
 }
 

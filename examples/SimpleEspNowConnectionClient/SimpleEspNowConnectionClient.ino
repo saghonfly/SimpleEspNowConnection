@@ -33,6 +33,7 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 
+
 void OnSendError(uint8_t* ad)
 {
   Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
@@ -56,19 +57,21 @@ void setup()
   Serial.println();
 
   simpleEspConnection.begin();
-  simpleEspConnection.setPairingBlinkPort(2);  
+//  simpleEspConnection.setPairingBlinkPort(2);  
 
-  // serverAddress = "ECFABCC08CDA"; // Test if you know the server
-  // simpleEspConnection.setServerMac(serverAddress);
+ //  serverAddress = "ECFABCC08CDA"; // Test if you know the server
+ //  simpleEspConnection.setServerMac(serverAddress);
   simpleEspConnection.onNewGatewayAddress(&OnNewGatewayAddress);    
   simpleEspConnection.onSendError(&OnSendError);  
   simpleEspConnection.onMessage(&OnMessage);  
-
+  
   Serial.println(WiFi.macAddress());  
 }
 
 void loop() 
 {
+  yield();
+  
   while (Serial.available()) 
   {
     char inChar = (char)Serial.read();

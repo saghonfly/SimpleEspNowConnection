@@ -65,10 +65,10 @@ void setup()
   Serial.begin(9600);
   Serial.println();
   // clientAddress = "ECFABC0CE7A2"; // Test if you know the client
-//  clientAddress = "A4CF12D5D767";
+  clientAddress = "807D3ADC8EF0";
 
   simpleEspConnection.begin();
-  simpleEspConnection.setPairingBlinkPort(2);
+  // simpleEspConnection.setPairingBlinkPort(2);
   simpleEspConnection.onMessage(&OnMessage);  
   simpleEspConnection.onPaired(&OnPaired);  
   simpleEspConnection.onSendError(&OnSendError);

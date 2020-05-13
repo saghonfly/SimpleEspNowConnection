@@ -14,14 +14,20 @@
 #ifndef SIMPLEESPNOWCONNECTION_H
 #define SIMPLEESPNOWCONNECTION_H
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
-#include "Ticker.h"
 
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
 extern "C" {
 #include <espnow.h>
 #include <user_interface.h>
 }
+#elif defined(ESP32)
+#include <WiFi.h>
+#include <esp_wifi.h>
+#include <esp_now.h>
+#endif
 
+#include "Ticker.h"
 
 typedef enum SimpleEspNowRole 
 {
@@ -77,7 +83,11 @@ class SimpleEspNowConnection
 	
 	uint8_t* strToMac(const char* str);	
 	
+#if defined(ESP8266)
 	static void onReceiveData(uint8_t *mac, uint8_t *data, uint8_t len);
+#elif defined(ESP32)
+	static void onReceiveData(const uint8_t *mac, const uint8_t *data, int len);
+#endif
 	static void pairingTickerServer();
 	static void pairingTickerClient();
 	static void pairingTickerLED();
@@ -96,6 +106,11 @@ class SimpleEspNowConnection
 	ConnectedFunction				_ConnectedFunction = NULL;
 	SendErrorFunction				_SendErrorFunction = NULL;
 	PairingFinishedFunction			_PairingFinishedFunction = NULL;	
+	
+#if defined(ESP32)
+	esp_now_peer_info_t _serverMacPeerInfo;
+	esp_now_peer_info_t _clientMacPeerInfo;
+#endif	
 };
 
 static SimpleEspNowConnection *simpleEspNowConnection = NULL;
