@@ -2,6 +2,13 @@
   SimpleEspNowConnection.h - A simple EspNow connection and pairing class.
   Erich O. Pintar
   https://pintarweb.net
+  
+  Version : 1.0.3
+  
+  Created 04 Mai 2020
+  By Erich O. Pintar
+  Modified 13 Mai 2020
+  By Erich O. Pintar
 */
 
 #ifndef SIMPLEESPNOWCONNECTION_H
