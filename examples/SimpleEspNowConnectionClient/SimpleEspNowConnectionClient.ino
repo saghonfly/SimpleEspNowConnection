@@ -4,7 +4,7 @@
   Basic EspNowConnection Client implementation
 
   HOWTO Arduino IDE:
-  - Prepare two ESP8266 based devices (eg. WeMos)
+  - Prepare two ESP8266 or ESP32 based devices (eg. WeMos)
   - Start two separate instances of Arduino IDE and load 
     on the first one the 'SimpleEspNowConnectionServer.ino' and
     on the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
@@ -18,7 +18,7 @@
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 12 Mai 2020
+  Modified 14 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
