@@ -25,6 +25,7 @@ onPaired					KEYWORD2
 onPairingFinished			KEYWORD2
 onConnected					KEYWORD2
 onSendError					KEYWORD2
+onSendDone					KEYWORD2
 macToStr					KEYWORD2
 
 #######################################

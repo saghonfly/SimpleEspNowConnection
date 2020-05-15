@@ -7,7 +7,7 @@
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 14 Mai 2020
+  Modified 15 Mai 2020
   By Erich O. Pintar
 */
 
@@ -256,13 +256,16 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 #ifdef DEBUG
 	  Serial.printf("send_cb, send done, status = %i\n", sendStatus);
 #endif	
+	  esp_now_unregister_send_cb();
 
 	  if(sendStatus != 0 && simpleEspNowConnection->_SendErrorFunction != NULL)
 	  {
 		  simpleEspNowConnection->_SendErrorFunction((uint8_t*)mac);
 	  }
-		  
-	  esp_now_unregister_send_cb();
+	  if(sendStatus == 0 && simpleEspNowConnection->_SendDoneFunction != NULL)
+	  {
+		  simpleEspNowConnection->_SendDoneFunction((uint8_t*)mac);
+	  }	  	  
 	});
 
 	
@@ -282,7 +285,7 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 		delete mac;
 	}
 	else
-	{
+	{		
 		esp_now_send(_serverMac, (uint8_t *) sendMessage, strlen(sendMessage));
 	}
 	
@@ -467,6 +470,11 @@ void SimpleEspNowConnection::onPairingFinished(PairingFinishedFunction fn)
 void SimpleEspNowConnection::onSendError(SendErrorFunction fn)
 {
 	_SendErrorFunction = fn;
+}
+
+void SimpleEspNowConnection::onSendDone(SendDoneFunction fn)
+{
+	_SendDoneFunction = fn;
 }
 
 bool SimpleEspNowConnection::initServer()
