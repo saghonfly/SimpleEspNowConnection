@@ -41,7 +41,7 @@ void OnSendError(uint8_t* ad)
 
 void OnMessage(uint8_t* ad, const char* message)
 {
-  Serial.println("MESSAGE:'"+String(message)+"' from "+simpleEspConnection.macToStr(ad));
+  Serial.println("MESSAGE:'"+String(message)+"' from client("+simpleEspConnection.macToStr(ad)+")");
 }
 
 void OnPaired(uint8_t *ga, String ad)
@@ -49,6 +49,8 @@ void OnPaired(uint8_t *ga, String ad)
   Serial.println("EspNowConnection : Client '"+ad+"' paired! ");
 
   clientAddress = ad;
+
+  simpleEspConnection.endPairing();
 }
 
 void OnConnected(uint8_t *ga, String ad)
@@ -85,8 +87,7 @@ void loop()
       multiCounter++;
 
       simpleEspConnection.sendMessage(
-          (char *)String("MultiSend #"+String(multiCounter)+" from "+
-            simpleEspConnection.macToStr(simpleEspConnection.getMyAddress())).c_str(), 
+          (char *)String("MultiSend #"+String(multiCounter)).c_str(), 
           clientAddress);
             
       if(multiCounter == 50)  // stop after 50 sends

@@ -346,10 +346,14 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 #elif defined(ESP32)
 void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *data, int len)
 #endif
-{
-	
+{	
 	if(len <= 3)
 		return;
+	
+	char buffer[len-3];
+	buffer[len-2] = 0;
+	
+	memcpy(buffer, data+2, len-2);	
 	
 	if(simpleEspNowConnection->_role == SimpleEspNowRole::CLIENT &&
 		simpleEspNowConnection->_pairingOngoing)
@@ -376,7 +380,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 			simpleEspNowConnection->_openTransaction = true;
 
 			if(simpleEspNowConnection->_NewGatewayAddressFunction)
-				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)data+2)));			
+				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
 		}
 	}
 	else
@@ -384,17 +388,17 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 		if(simpleEspNowConnection->_MessageFunction)
 		{
 			if(data[0] == SimpleEspNowMessageType::DATA)			
-				simpleEspNowConnection->_MessageFunction((uint8_t *)mac, (char *)data+2);
+				simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer);
 		}
 		if(simpleEspNowConnection->_PairedFunction)
 		{		
 			if(data[0] == SimpleEspNowMessageType::PAIR)			
-				simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)data+2)));			
+				simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
 		}
 		if(simpleEspNowConnection->_ConnectedFunction)
 		{
 			if(data[0] == SimpleEspNowMessageType::CONNECT)
-				simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)data+2)));							
+				simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
 		}
 		
 #ifdef DEBUG

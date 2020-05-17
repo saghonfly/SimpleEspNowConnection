@@ -11,14 +11,14 @@
     these to the two ESP devices.
   - Start the 'Serial Monitor' in both instances and set baud rate to 9600
   - Type 'startpair' into the edit box of both 'Serial Monitors' and hit Enter key (or press 'Send' button)
-  - After devices are paired, type 'sendtest' into the edit box 
+  - After devices are paired, type 'send' or 'multisend' into the edit box  
     of the 'Serial Monitor' and hit Enter key (or press 'Send' button)
 
   - You can use multiple clients which can be connected to one server
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 14 Mai 2020
+  Modified 17 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -33,6 +33,7 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 
+int multiCounter = -1;
 
 void OnSendError(uint8_t* ad)
 {
@@ -41,7 +42,7 @@ void OnSendError(uint8_t* ad)
 
 void OnMessage(uint8_t* ad, const char* message)
 {
-  Serial.println("MESSAGE:"+String(message));
+  Serial.println("MESSAGE:"+String(message)+" from server ("+simpleEspConnection.macToStr(ad)+")");
 }
 
 void OnNewGatewayAddress(uint8_t *ga, String ad)
@@ -71,6 +72,19 @@ void setup()
 void loop() 
 {
   yield();
+
+  if(multiCounter > -1)   //send a lot of messages but ensure that only send when it is possible
+  {
+    if(simpleEspConnection.canSend())
+    {
+      multiCounter++;
+
+      simpleEspConnection.sendMessage((char *)String("MultiSend #"+String(multiCounter)).c_str());
+            
+      if(multiCounter == 50)  // stop after 50 sends
+        multiCounter = -1;
+    }
+  }
   
   while (Serial.available()) 
   {
@@ -93,12 +107,16 @@ void loop()
         
         simpleEspConnection.setPairingMac(np);
       }      
-      else if(inputString == "sendtest")
+      else if(inputString == "send")
       {
         if(!simpleEspConnection.sendMessage("This comes from the Client"))
         {
           Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }
+      }
+      else if(inputString == "multisend")
+      {
+        multiCounter = 0;
       }
       
       inputString = "";
