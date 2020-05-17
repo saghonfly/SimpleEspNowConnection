@@ -3,11 +3,11 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.0.3
+  Version : 1.0.4
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 15 Mai 2020
+  Modified 17 Mai 2020
   By Erich O. Pintar
 */
 
@@ -55,6 +55,7 @@ class SimpleEspNowConnection
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
+	bool			  canSend();
 
 	void              onMessage(MessageFunction fn);
 	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
@@ -65,6 +66,7 @@ class SimpleEspNowConnection
 	void 			  onPairingFinished(PairingFinishedFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
+	uint8_t*		  getMyAddress();
 
   protected:    
 	typedef enum SimpleEspNowMessageType
@@ -78,7 +80,8 @@ class SimpleEspNowConnection
 	uint8_t _pairingMac[6] {0xCE, 0x50, 0xE3, 0x15, 0xB7, 0x34}; // MAC ADDRESS WHEN CLIENT IS LISTENING FOR PAIRING
 	uint8_t _myAddress[6];
 	uint8_t _serverMac[6];
-	
+	uint8_t	_channel;
+	volatile long	_lastSentTime;
 				   
 	bool initServer();
 	bool initClient();	
@@ -98,6 +101,7 @@ class SimpleEspNowConnection
 	volatile bool _pairingOngoing;
 	volatile int _pairingCounter;
 	volatile int _pairingMaxCount;
+	volatile bool _openTransaction;
 
 	int _pairingGPIO = -1;	
 	int _pairingInvers = true;	
