@@ -19,7 +19,7 @@
 
   Created 11 Mai 2020
   By Erich O. Pintar
-  Modified 12 Mai 2020
+  Modified 17 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -47,6 +47,8 @@ void OnPaired(uint8_t *ga, String ad)
   Serial.println("EspNowConnection : Client '"+ad+"' paired! ");
 
   simpleEspConnection.endPairing();  
+  
+  Serial.println("Please enter 'settimeout 10' to change the sllep time of the client to eg. 10 seconds (or any other number you want)");  
 }
 
 void OnConnected(uint8_t *ga, String ad)
@@ -63,6 +65,8 @@ void setup()
   Serial.begin(9600);
   Serial.println();
    clientAddress = "ECFABC0CE7A2"; // Test if you know the client
+
+  Serial.println("Please enter 'startpair' to start pairing");
 
   simpleEspConnection.begin();
   simpleEspConnection.setPairingBlinkPort(2);
