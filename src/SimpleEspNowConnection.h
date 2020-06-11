@@ -48,6 +48,7 @@ class SimpleEspNowConnection
     SimpleEspNowConnection(SimpleEspNowRole role);
 
 	bool              begin();
+	bool 			  loop();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
@@ -73,7 +74,37 @@ class SimpleEspNowConnection
 	{
 	  DATA = 1, PAIR = 2, CONNECT = 3
 	} SimpleEspNowMessageType_t;
+		
+	class DeviceMessageBuffer
+	{
+		protected:
+			class DeviceBufferObject
+			{
+				public:
+					DeviceBufferObject(){};
+					DeviceBufferObject(uint8_t *device, int packages);
+					~DeviceBufferObject();
+
+					uint8_t devicename[6];
+					uint8_t* buffer;
+			};		
+
+		public:
+			DeviceMessageBuffer();
+			~DeviceMessageBuffer();
+			
+			void createBuffer(uint8_t *device, int packages);
+			void addBuffer(uint8_t *device, uint8_t *buffer, int len, int package);
+			uint8_t* getBuffer(uint8_t *device);
+			void deleteBuffer(uint8_t *device);
+
+
+			DeviceBufferObject *dbo[20]; // buffer for 20 at the same time sending devices should be sufficent
+			
+	};
 	
+	DeviceMessageBuffer deviceMessageBuffer;
+
   private:    
 	SimpleEspNowRole_t    _role;
 	  
@@ -85,7 +116,7 @@ class SimpleEspNowConnection
 				   
 	bool initServer();
 	bool initClient();	
-	
+	bool sendPackage(int package, int sum, char* message, String address);
 	uint8_t* strToMac(const char* str);	
 	
 #if defined(ESP8266)
@@ -96,6 +127,7 @@ class SimpleEspNowConnection
 	static void pairingTickerServer();
 	static void pairingTickerClient();
 	static void pairingTickerLED();
+	
 	
 	Ticker _pairingTicker, _pairingTickerBlink;	
 	volatile bool _pairingOngoing;

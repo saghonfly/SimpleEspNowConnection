@@ -32,8 +32,30 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 
 String inputString;
 String serverAddress;
-
 int multiCounter = -1;
+char temp[1200];
+
+
+char* getBigMessage()
+{
+  snprintf(temp, 1200,  
+"\
+SHRDZM Sensor Integration Platform\
+SHRDZM (a unique name, no acronym) is a custom firmware for ESP8285/ESP8266 based sensors. It uses the Arduino Core for ESP8266 framework and a number of 3rd party libraries.\
+\
+It provides wiring digrams, source code and working examples. Also plug-ins for most common used home automation solutions will be collected.\
+\
+To build cheap integrations of many kind of sensors into your individual automation solution with the focus on energy efficiency (battery operated devices) and simpleness.\
+\
+Features\
+Support for multiple sensor types\
+All supported sensor types covered in one firmware\
+Sensor type can be changed by configuration without flashing new firmware\
+New firmware versions (eg. due to supporting new sensor types) can be upgraded by OTA\
+");  
+
+  return temp;
+}
 
 void OnSendError(uint8_t* ad)
 {
@@ -60,8 +82,8 @@ void setup()
   simpleEspConnection.begin();
 //  simpleEspConnection.setPairingBlinkPort(2);  
 
- //  serverAddress = "ECFABCC08CDA"; // Test if you know the server
- //  simpleEspConnection.setServerMac(serverAddress);
+   serverAddress = "ECFABCC08CDA"; // Test if you know the server
+   simpleEspConnection.setServerMac(serverAddress);
   simpleEspConnection.onNewGatewayAddress(&OnNewGatewayAddress);    
   simpleEspConnection.onSendError(&OnSendError);  
   simpleEspConnection.onMessage(&OnMessage);  
@@ -71,7 +93,7 @@ void setup()
 
 void loop() 
 {
-  yield();
+  simpleEspConnection.loop();
 
   if(multiCounter > -1)   //send a lot of messages but ensure that only send when it is possible
   {
@@ -110,6 +132,13 @@ void loop()
       else if(inputString == "send")
       {
         if(!simpleEspConnection.sendMessage("This comes from the Client"))
+        {
+          Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
+        }
+      }
+      else if(inputString == "bigsend")
+      {
+        if(!simpleEspConnection.sendMessage(getBigMessage()))
         {
           Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }

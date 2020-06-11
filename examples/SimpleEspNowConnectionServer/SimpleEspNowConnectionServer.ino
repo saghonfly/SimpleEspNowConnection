@@ -64,7 +64,7 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println();
-  // clientAddress = "ECFABC0CE7A2"; // Test if you already know one of the clients
+   clientAddress = "CC50E35B56B1"; // Test if you already know one of the clients
 
   simpleEspConnection.begin();
   // simpleEspConnection.setPairingBlinkPort(2);
@@ -78,7 +78,7 @@ void setup()
 
 void loop() 
 {
-
+  simpleEspConnection.loop();
 
   if(multiCounter > -1)   //send a lot of messages but ensure that only send when it is possible
   {

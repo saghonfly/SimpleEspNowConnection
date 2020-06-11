@@ -7,13 +7,82 @@
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 17 Mai 2020
+  Modified 11 Jun 2020
   By Erich O. Pintar
 */
 
 #include "SimpleEspNowConnection.h"
 
 //#define DEBUG
+
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(uint8_t *device, int packages)
+{
+	memcpy(this->devicename, device, 6);
+	this->buffer = new uint8_t[packages*140];
+}
+
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::~DeviceBufferObject()
+{
+	delete this->buffer;
+}
+
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceMessageBuffer()
+{
+}
+
+SimpleEspNowConnection::DeviceMessageBuffer::~DeviceMessageBuffer()
+{
+}
+
+void SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, int packages)
+{
+    for(int i = 0; i<20; i++)
+    {
+      if(dbo[i] == NULL)
+      {
+        dbo[i] = new DeviceBufferObject(device, packages);
+        break;
+      }
+    }	
+}
+
+void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, uint8_t *buffer, int len, int package)
+{
+    for(int i = 0;i<20; i++)
+    {
+      if(dbo[i] != NULL && memcmp(dbo[i]->devicename, device, 6) == 0)
+		{
+			memcpy(dbo[i]->buffer+(140*package), buffer, len);
+
+			break;
+		}
+	}	
+}
+
+uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device)
+{
+    for(int i = 0;i<20; i++)
+    {
+      if(dbo[i] != NULL && memcmp(dbo[i]->devicename, device, 6) == 0)
+      {
+		return dbo[i]->buffer;
+        break;
+      }
+    }	
+}
+
+void SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(uint8_t *device)
+{
+    for(int i = 0;i<20; i++)
+    {
+      if(dbo[i] != NULL && memcmp(dbo[i]->devicename, device, 6) == 0)
+      {
+        delete dbo[i];
+        dbo[i] = NULL;
+        break;
+      }
+    }	
+}
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 
 {
@@ -82,6 +151,12 @@ bool SimpleEspNowConnection::begin()
 	}
 	
 	return true;
+}
+
+bool SimpleEspNowConnection::loop()
+{
+	// do whatever has to be done...
+	
 }
 
 bool SimpleEspNowConnection::canSend()
@@ -266,23 +341,18 @@ bool SimpleEspNowConnection::endPairing()
 	return true;
 }
 
-bool SimpleEspNowConnection::sendMessage(char* message, String address)
+bool SimpleEspNowConnection::sendPackage(int package, int sum, char* message, String address)
 {
-	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
-		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ) ||
-		strlen(message) > 140)
-	{
-		return false;
-	}
-
-	char sendMessage[strlen(message)+3];
+	int messagelen = strlen(message) > 140 ? 140 : strlen(message);
+	
+	char sendMessage[messagelen+3];
 	
 	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
-	sendMessage[1] = 1;	// 1st package
-	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
-	sendMessage[strlen(message)+2] = 0;
+	sendMessage[1] = package+1;	
+	sendMessage[2] = sum;	
+	sendMessage[messagelen+3] = 0;
 	
-	memcpy(sendMessage+2, message, strlen(message));
+	memcpy(sendMessage+3, message, messagelen);
 
 	
 	if(_role == SimpleEspNowRole::SERVER)
@@ -307,7 +377,29 @@ bool SimpleEspNowConnection::sendMessage(char* message, String address)
 		esp_now_send(_serverMac, (uint8_t *) sendMessage, strlen(sendMessage));
 		_openTransaction = true;
 	}
-	
+		
+	return true;
+}
+
+bool SimpleEspNowConnection::sendMessage(char* message, String address)
+{
+	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
+		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ))
+	{
+		return false;
+	}
+
+	int packages = strlen(message) / 140 +1;
+
+#ifdef DEBUG
+	Serial.printf("Number of bytes %d, number of packages %d\n", strlen(message), packages);
+#endif
+
+	for(int i = 0; i<packages; i++)
+	{
+		sendPackage(i, packages, message+(i*140), address);
+	}
+
 	return true;
 }
 uint8_t* SimpleEspNowConnection::strToMac(const char* str)
@@ -353,7 +445,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 	char buffer[len-3];
 	buffer[len-2] = 0;
 	
-	memcpy(buffer, data+2, len-2);	
+	memcpy(buffer, data+3, len-2);	
 	
 	if(simpleEspNowConnection->_role == SimpleEspNowRole::CLIENT &&
 		simpleEspNowConnection->_pairingOngoing)
@@ -385,20 +477,39 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 	}
 	else
 	{
-		if(simpleEspNowConnection->_MessageFunction)
+		if(data[0] == SimpleEspNowMessageType::DATA && simpleEspNowConnection->_MessageFunction)
 		{
-			if(data[0] == SimpleEspNowMessageType::DATA)			
-				simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer);
+#ifdef DEBUG
+			Serial.printf("Package %d of %d packages\n", data[1], data[2]);
+#endif
+			if(data[1] == 1 && data[2] > 1)  // prepare memory for this device
+			{
+				simpleEspNowConnection->deviceMessageBuffer.createBuffer(mac, data[2]);				
+				simpleEspNowConnection->deviceMessageBuffer.addBuffer(mac, (uint8_t *)buffer, len-2, data[1]-1);
+			}
+			else if(data[2] > 1)
+			{
+				simpleEspNowConnection->deviceMessageBuffer.addBuffer(mac, (uint8_t *)buffer, len-2, data[1]-1);
+			}
+			
+			if(data[1] == data[2])
+			{
+				if(data[2] > 1)
+				{
+					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, (char *)simpleEspNowConnection->deviceMessageBuffer.getBuffer(mac));
+					simpleEspNowConnection->deviceMessageBuffer.deleteBuffer(mac);
+				}
+				else					
+					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer);
+			}
 		}
-		if(simpleEspNowConnection->_PairedFunction)
-		{		
-			if(data[0] == SimpleEspNowMessageType::PAIR)			
-				simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
-		}
-		if(simpleEspNowConnection->_ConnectedFunction)
+		else if(data[0] == SimpleEspNowMessageType::PAIR && simpleEspNowConnection->_PairedFunction)
 		{
-			if(data[0] == SimpleEspNowMessageType::CONNECT)
-				simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
+			simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
+		}
+		else if(data[0] == SimpleEspNowMessageType::CONNECT && simpleEspNowConnection->_ConnectedFunction)
+		{
+			simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
 		}
 		
 #ifdef DEBUG
