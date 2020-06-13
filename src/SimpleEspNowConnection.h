@@ -29,6 +29,8 @@ extern "C" {
 
 #include "Ticker.h"
 
+#define MaxBufferSize 50
+
 typedef enum SimpleEspNowRole 
 {
   SERVER = 0, CLIENT = 1
@@ -47,7 +49,7 @@ class SimpleEspNowConnection
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
-	bool              begin();
+	bool              begin(bool supportLooping = false);
 	bool 			  loop();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
@@ -99,11 +101,11 @@ class SimpleEspNowConnection
 			void deleteBuffer(uint8_t *device);
 
 
-			DeviceBufferObject *dbo[20]; // buffer for 20 at the same time sending devices should be sufficent
-			
+			DeviceBufferObject *dbo[MaxBufferSize]; // buffer for the same time sending messages			
 	};
 	
-	DeviceMessageBuffer deviceMessageBuffer;
+	DeviceMessageBuffer deviceReceiveMessageBuffer;
+	DeviceMessageBuffer deviceSendMessageBuffer;
 
   private:    
 	SimpleEspNowRole_t    _role;
@@ -116,6 +118,7 @@ class SimpleEspNowConnection
 				   
 	bool initServer();
 	bool initClient();	
+	void prepareSendPackages(char* message, String address);
 	bool sendPackage(int package, int sum, char* message, String address);
 	uint8_t* strToMac(const char* str);	
 	
@@ -134,6 +137,7 @@ class SimpleEspNowConnection
 	volatile int _pairingCounter;
 	volatile int _pairingMaxCount;
 	volatile bool _openTransaction;
+	bool _supportLooping;
 
 	int _pairingGPIO = -1;	
 	int _pairingInvers = true;	

@@ -6,8 +6,8 @@
   HOWTO Arduino IDE:
   - Prepare two ESP8266 or ESP32 based devices (eg. WeMos)
   - Start two separate instances of Arduino IDE and load 
-    on the first one the 'SimpleEspNowConnectionServer.ino' and
-    on the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
+    for the first one the 'SimpleEspNowConnectionServer.ino' and
+    for the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
     these to the two ESP devices.
   - Start the 'Serial Monitor' in both instances and set baud rate to 9600
   - Type 'startpair' into the edit box of both 'Serial Monitors' and hit Enter key (or press 'Send' button)

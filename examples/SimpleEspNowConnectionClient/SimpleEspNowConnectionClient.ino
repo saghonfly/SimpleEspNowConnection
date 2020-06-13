@@ -6,8 +6,8 @@
   HOWTO Arduino IDE:
   - Prepare two ESP8266 or ESP32 based devices (eg. WeMos)
   - Start two separate instances of Arduino IDE and load 
-    on the first one the 'SimpleEspNowConnectionServer.ino' and
-    on the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
+    for the first one the 'SimpleEspNowConnectionServer.ino' and
+    for the second one the 'SimpleEspNowConnectionClient.ino' sketch and upload 
     these to the two ESP devices.
   - Start the 'Serial Monitor' in both instances and set baud rate to 9600
   - Type 'startpair' into the edit box of both 'Serial Monitors' and hit Enter key (or press 'Send' button)
@@ -33,18 +33,39 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 int multiCounter = -1;
-char temp[1200];
+char temp[2200];
 
 
 char* getBigMessage()
 {
-  snprintf(temp, 1200,  
+  snprintf(temp, 2200,  
 "\
 SHRDZM Sensor Integration Platform\
 SHRDZM (a unique name, no acronym) is a custom firmware for ESP8285/ESP8266 based sensors. It uses the Arduino Core for ESP8266 framework and a number of 3rd party libraries.\
 \
 It provides wiring digrams, source code and working examples. Also plug-ins for most common used home automation solutions will be collected.\
 \
+To build cheap integrations of many kind of sensors into your individual automation solution with the focus on energy efficiency (battery operated devices) and simpleness.\
+\
+Features\
+Support for multiple sensor types\
+All supported sensor types covered in one firmware\
+Sensor type can be changed by configuration without flashing new firmware\
+New firmware versions (eg. due to supporting new sensor types) can be upgraded by OTA\
+To build cheap integrations of many kind of sensors into your individual automation solution with the focus on energy efficiency (battery operated devices) and simpleness.\
+\
+Features\
+Support for multiple sensor types\
+All supported sensor types covered in one firmware\
+Sensor type can be changed by configuration without flashing new firmware\
+New firmware versions (eg. due to supporting new sensor types) can be upgraded by OTA\
+To build cheap integrations of many kind of sensors into your individual automation solution with the focus on energy efficiency (battery operated devices) and simpleness.\
+\
+Features\
+Support for multiple sensor types\
+All supported sensor types covered in one firmware\
+Sensor type can be changed by configuration without flashing new firmware\
+New firmware versions (eg. due to supporting new sensor types) can be upgraded by OTA\
 To build cheap integrations of many kind of sensors into your individual automation solution with the focus on energy efficiency (battery operated devices) and simpleness.\
 \
 Features\
@@ -79,7 +100,7 @@ void setup()
   Serial.begin(9600);
   Serial.println();
 
-  simpleEspConnection.begin();
+  simpleEspConnection.begin(true);
 //  simpleEspConnection.setPairingBlinkPort(2);  
 
    serverAddress = "ECFABCC08CDA"; // Test if you know the server
