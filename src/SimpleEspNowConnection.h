@@ -8,7 +8,11 @@
   Created 04 Mai 2020
   By Erich O. Pintar
 <<<<<<< HEAD
+<<<<<<< HEAD
   Modified 17 Mai 2020
+=======
+  Modified 13 Mai 2020
+>>>>>>> parent of 7128455... Update
 =======
   Modified 13 Mai 2020
 >>>>>>> parent of 7128455... Update
