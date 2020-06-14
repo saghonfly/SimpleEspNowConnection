@@ -3,27 +3,11 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.0.4
+  Version : 1.0.3
   
   Created 04 Mai 2020
   By Erich O. Pintar
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Modified 17 Mai 2020
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
+  Modified 15 Mai 2020
   By Erich O. Pintar
 */
 
@@ -45,8 +29,6 @@ extern "C" {
 
 #include "Ticker.h"
 
-#define MaxBufferSize 50
-
 typedef enum SimpleEspNowRole 
 {
   SERVER = 0, CLIENT = 1
@@ -65,8 +47,7 @@ class SimpleEspNowConnection
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
-	bool              begin(bool supportLooping = false);
-	void 			  loop();
+	bool              begin();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
@@ -74,7 +55,6 @@ class SimpleEspNowConnection
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
-	bool			  canSend();
 
 	void              onMessage(MessageFunction fn);
 	void              onNewGatewayAddress(NewGatewayAddressFunction fn);
@@ -85,74 +65,24 @@ class SimpleEspNowConnection
 	void 			  onPairingFinished(PairingFinishedFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
-	uint8_t*		  getMyAddress();
 
-//  protected:    
+  protected:    
 	typedef enum SimpleEspNowMessageType
 	{
 	  DATA = 1, PAIR = 2, CONNECT = 3
 	} SimpleEspNowMessageType_t;
-		
-	class DeviceMessageBuffer
-	{
-		public:
-		//protected:
-			class DeviceBufferObject
-			{
-				public:
-					DeviceBufferObject(){};
-					DeviceBufferObject(uint8_t *device, int packages, long id);
-					~DeviceBufferObject();
-
-					uint8_t _devicename[6];
-					uint8_t _buffer[140];
-					long _id;
-					
-					int _packages;
-					int _package;
-			};		
-
-		public:
-			DeviceMessageBuffer();
-			~DeviceMessageBuffer();
-			
-			void createBuffer(uint8_t *device, int packages);
-			void addBuffer(uint8_t *device, uint8_t *buffer, int len, int package);
-			DeviceBufferObject* getNextBuffer()
-			{
-				for(int i = 0;i<MaxBufferSize; i++)
-				{
-				  if(_dbo[i] != NULL)
-				  {
-					return _dbo[i];
-					break;
-				  }
-				}	
-				return NULL;
-			};
-			uint8_t* getBuffer(uint8_t *device);
-			void deleteBuffer(uint8_t *device);
-			void deleteBuffer(DeviceBufferObject* dbo);
-
-			DeviceBufferObject *_dbo[MaxBufferSize]; // buffer for the same time sending messages			
-	};
 	
-	DeviceMessageBuffer _deviceReceiveMessageBuffer;
-	DeviceMessageBuffer _deviceSendMessageBuffer;
-
   private:    
 	SimpleEspNowRole_t    _role;
 	  
 	uint8_t _pairingMac[6] {0xCE, 0x50, 0xE3, 0x15, 0xB7, 0x34}; // MAC ADDRESS WHEN CLIENT IS LISTENING FOR PAIRING
 	uint8_t _myAddress[6];
 	uint8_t _serverMac[6];
-	uint8_t	_channel;
-	volatile long	_lastSentTime;
+	
 				   
 	bool initServer();
 	bool initClient();	
-	void prepareSendPackages(char* message, String address);
-	bool sendPackage(int package, int sum, char* message, String address);
+	
 	uint8_t* strToMac(const char* str);	
 	
 #if defined(ESP8266)
@@ -164,13 +94,10 @@ class SimpleEspNowConnection
 	static void pairingTickerClient();
 	static void pairingTickerLED();
 	
-	
 	Ticker _pairingTicker, _pairingTickerBlink;	
 	volatile bool _pairingOngoing;
 	volatile int _pairingCounter;
 	volatile int _pairingMaxCount;
-	volatile bool _openTransaction;
-	bool _supportLooping;
 
 	int _pairingGPIO = -1;	
 	int _pairingInvers = true;	
