@@ -50,7 +50,7 @@ class SimpleEspNowConnection
     SimpleEspNowConnection(SimpleEspNowRole role);
 
 	bool              begin(bool supportLooping = false);
-	bool 			  loop();
+	void 			  loop();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
@@ -71,7 +71,7 @@ class SimpleEspNowConnection
 	String 			  macToStr(const uint8_t* mac);
 	uint8_t*		  getMyAddress();
 
-  protected:    
+//  protected:    
 	typedef enum SimpleEspNowMessageType
 	{
 	  DATA = 1, PAIR = 2, CONNECT = 3
@@ -79,16 +79,21 @@ class SimpleEspNowConnection
 		
 	class DeviceMessageBuffer
 	{
-		protected:
+		public:
+		//protected:
 			class DeviceBufferObject
 			{
 				public:
 					DeviceBufferObject(){};
-					DeviceBufferObject(uint8_t *device, int packages);
+					DeviceBufferObject(uint8_t *device, int packages, long id);
 					~DeviceBufferObject();
 
-					uint8_t devicename[6];
-					uint8_t* buffer;
+					uint8_t _devicename[6];
+					uint8_t _buffer[140];
+					long _id;
+					
+					int _packages;
+					int _package;
 			};		
 
 		public:
@@ -97,15 +102,27 @@ class SimpleEspNowConnection
 			
 			void createBuffer(uint8_t *device, int packages);
 			void addBuffer(uint8_t *device, uint8_t *buffer, int len, int package);
+			DeviceBufferObject* getNextBuffer()
+			{
+				for(int i = 0;i<MaxBufferSize; i++)
+				{
+				  if(_dbo[i] != NULL)
+				  {
+					return _dbo[i];
+					break;
+				  }
+				}	
+				return NULL;
+			};
 			uint8_t* getBuffer(uint8_t *device);
 			void deleteBuffer(uint8_t *device);
+			void deleteBuffer(DeviceBufferObject* dbo);
 
-
-			DeviceBufferObject *dbo[MaxBufferSize]; // buffer for the same time sending messages			
+			DeviceBufferObject *_dbo[MaxBufferSize]; // buffer for the same time sending messages			
 	};
 	
-	DeviceMessageBuffer deviceReceiveMessageBuffer;
-	DeviceMessageBuffer deviceSendMessageBuffer;
+	DeviceMessageBuffer _deviceReceiveMessageBuffer;
+	DeviceMessageBuffer _deviceSendMessageBuffer;
 
   private:    
 	SimpleEspNowRole_t    _role;
