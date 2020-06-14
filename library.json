@@ -16,7 +16,7 @@
       "maintainer": true
     },
   ],
-  "version": "1.0.4",
+  "version": "1.0.3",
   "examples": "examples/*/*.ino",
   "frameworks": "arduino",
   "platforms": "*"

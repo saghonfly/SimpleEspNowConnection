@@ -26,7 +26,7 @@
 
   Created 11 Mai 2020
   By Erich O. Pintar
-  Modified 17 Mai 2020
+  Modified 12 Mai 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -43,7 +43,7 @@ bool pairingMode = false;
 String inputString;
 String serverAddress;
 
-int timeout = 15;
+int timeout = 10;
 
 void OnSendError(uint8_t* ad)
 {
@@ -144,7 +144,7 @@ void setup()
 
     if(!simpleEspConnection.setServerMac(serverAddress)) // set the server address which is stored in EEPROM
     {
-      Serial.println("!!! Server address not valid. Please pair first !!! (Press the pairing button during restart/reset)");
+      Serial.println("!!! Server address not valid. Please pair first !!!");
       return;
     }
     
@@ -162,7 +162,7 @@ void loop()
   if(pairingMode) // do not go to sleep if pairing mode is ongoing
     return;
     
-  if(millis() < 100)  // wait 100 milliseconds for message from server otherwise go to sleep
+  if(millis() < 100)  // wait half a second for message from server otherwise go to sleep
     return;
 
   Serial.printf("Going to sleep...I was up for %i ms...will come back in %d seconds\n", millis(), timeout); 

@@ -515,7 +515,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 			memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
 			
 			esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
-			simpleEspNowConnection->_openTransaction = true; 
+			simpleEspNowConnection->_openTransaction = true;
 
 			if(simpleEspNowConnection->_NewGatewayAddressFunction)
 				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
