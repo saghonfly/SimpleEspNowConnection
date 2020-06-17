@@ -29,6 +29,8 @@ extern "C" {
 
 #include "Ticker.h"
 
+#define MaxBufferSize 50
+
 typedef enum SimpleEspNowRole 
 {
   SERVER = 0, CLIENT = 1
@@ -47,11 +49,13 @@ class SimpleEspNowConnection
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
-	bool              begin();
+	bool              begin(bool supportLooping = false);
+	void              loop();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
 	bool 			  sendMessage(char* message, String address = "");
+	bool 			  sendMessageOld(char* message, String address = "");
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
@@ -72,16 +76,55 @@ class SimpleEspNowConnection
 	  DATA = 1, PAIR = 2, CONNECT = 3
 	} SimpleEspNowMessageType_t;
 	
+	class DeviceMessageBuffer
+	{
+		public:
+			class DeviceBufferObject
+			{
+				public:
+					DeviceBufferObject();
+					DeviceBufferObject(long id, int counter, int packages, uint8_t *device);
+					DeviceBufferObject(long id, int counter, int packages, uint8_t *device, char* message, int len);
+					~DeviceBufferObject();
+
+					long _id;
+					uint8_t _device[6];
+					char _message[235];
+					int _len;
+					int _counter;
+					int _packages;
+			};		
+
+			DeviceMessageBuffer();
+			~DeviceMessageBuffer();
+			
+			bool createBuffer(uint8_t *device, char* message);
+			bool createBuffer(uint8_t *device, long id, int packages);
+			void addBuffer(uint8_t *device, long id, uint8_t *buffer, int len, int package);
+			char* getBuffer(uint8_t *device, int packages);
+			SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* getNextBuffer();
+			bool deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo);
+			bool deleteBuffer(uint8_t *device);
+
+			DeviceBufferObject *_dbo[MaxBufferSize]; // buffer for messages			
+	};
+	
+	DeviceMessageBuffer deviceSendMessageBuffer;
+	DeviceMessageBuffer deviceReceiveMessageBuffer;
+	
   private:    
 	SimpleEspNowRole_t    _role;
 	  
 	uint8_t _pairingMac[6] {0xCE, 0x50, 0xE3, 0x15, 0xB7, 0x34}; // MAC ADDRESS WHEN CLIENT IS LISTENING FOR PAIRING
 	uint8_t _myAddress[6];
 	uint8_t _serverMac[6];
-	
+	uint8_t	_channel;	
+	volatile long	_lastSentTime;
 				   
 	bool initServer();
 	bool initClient();	
+	void prepareSendPackages(char* message, String address);
+	bool sendPackage(long id, int package, int sum, char* message, int messagelen, uint8_t* address);
 	
 	uint8_t* strToMac(const char* str);	
 	
@@ -98,6 +141,8 @@ class SimpleEspNowConnection
 	volatile bool _pairingOngoing;
 	volatile int _pairingCounter;
 	volatile int _pairingMaxCount;
+	bool _supportLooping;
+	volatile bool _openTransaction;
 
 	int _pairingGPIO = -1;	
 	int _pairingInvers = true;	

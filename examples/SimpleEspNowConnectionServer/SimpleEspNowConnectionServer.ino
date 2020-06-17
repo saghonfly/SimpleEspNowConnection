@@ -18,7 +18,7 @@
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 14 Mai 2020
+  Modified 14 Jun 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -41,9 +41,9 @@ void OnMessage(uint8_t* ad, const char* message)
 {
   Serial.println("MESSAGE:'"+String(message)+"' from "+simpleEspConnection.macToStr(ad));
 
-  clientAddress = simpleEspConnection.macToStr(ad);  
+//  clientAddress = simpleEspConnection.macToStr(ad);  
 
-  simpleEspConnection.sendMessage("Message at OnMessage from Server", clientAddress);  
+//  simpleEspConnection.sendMessage("Message at OnMessage from Server", clientAddress);  
 }
 
 void OnPaired(uint8_t *ga, String ad)
@@ -65,10 +65,10 @@ void setup()
   Serial.begin(9600);
   Serial.println();
   // clientAddress = "ECFABC0CE7A2"; // Test if you know the client
-  clientAddress = "807D3ADC8EF0";
+  clientAddress = "CC50E35B56B1";
 
-  simpleEspConnection.begin();
-  // simpleEspConnection.setPairingBlinkPort(2);
+  simpleEspConnection.begin(true);
+   simpleEspConnection.setPairingBlinkPort(2);
   simpleEspConnection.onMessage(&OnMessage);  
   simpleEspConnection.onPaired(&OnPaired);  
   simpleEspConnection.onSendError(&OnSendError);
@@ -79,6 +79,8 @@ void setup()
 
 void loop() 
 {
+  simpleEspConnection.loop();
+  
   while (Serial.available()) 
   {
     char inChar = (char)Serial.read();

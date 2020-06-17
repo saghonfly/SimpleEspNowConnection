@@ -33,6 +33,37 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 
+char temp[2200];
+
+
+char* getBigMessage()
+{
+  snprintf(temp, 2200,  
+"\
+One, remember to look up at the stars and not down at your feet.\
+Two, never give up work. Work gives you meaning and purpose and \
+life is empty without it. Three, if you are lucky enough to find love,\
+remember it is there and don't throw it away.\
+\
+A human being is a part of the whole called by us universe, \
+a part limited in time and space. He experiences himself, \
+his thoughts and feeling as something separated from the rest, \
+a kind of optical delusion of his consciousness. \
+This delusion is a kind of prison for us, restricting us to our personal \
+desires and to affection for a few persons nearest to us. Our task must be \
+to free ourselves from this prison by widening our circle of compassion to \
+embrace all living creatures and the whole of nature in its beauty.\
+\
+Fantasy is escapist, and that is its glory. \
+If a soldier is imprisioned by the enemy, don't we consider \
+it his duty to escape?. . .If we value the freedom of mind and soul, \
+if we're partisans of liberty, then it's our plain duty to escape, \
+and to take as many people with us as we can!\
+\
+");  
+
+  return temp;
+}
 
 void OnSendError(uint8_t* ad)
 {
@@ -56,11 +87,11 @@ void setup()
   Serial.begin(9600);
   Serial.println();
 
-  simpleEspConnection.begin();
-//  simpleEspConnection.setPairingBlinkPort(2);  
+  simpleEspConnection.begin(true);
+  simpleEspConnection.setPairingBlinkPort(2);  
 
- //  serverAddress = "ECFABCC08CDA"; // Test if you know the server
- //  simpleEspConnection.setServerMac(serverAddress);
+   serverAddress = "ECFABCC08CDA"; // Test if you know the server
+   simpleEspConnection.setServerMac(serverAddress);
   simpleEspConnection.onNewGatewayAddress(&OnNewGatewayAddress);    
   simpleEspConnection.onSendError(&OnSendError);  
   simpleEspConnection.onMessage(&OnMessage);  
@@ -70,7 +101,7 @@ void setup()
 
 void loop() 
 {
-  yield();
+  simpleEspConnection.loop();
   
   while (Serial.available()) 
   {
@@ -93,9 +124,16 @@ void loop()
         
         simpleEspConnection.setPairingMac(np);
       }      
-      else if(inputString == "sendtest")
+      else if(inputString == "send")
       {
         if(!simpleEspConnection.sendMessage("This comes from the Client"))
+        {
+          Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
+        }
+      }
+      else if(inputString == "bigsend")
+      {
+        if(!simpleEspConnection.sendMessage(getBigMessage()))
         {
           Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }
