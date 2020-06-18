@@ -39,7 +39,7 @@ typedef enum SimpleEspNowRole
 class SimpleEspNowConnection 
 {   
   public:
-	typedef std::function<void(uint8_t*, const char*)> MessageFunction;	
+	typedef std::function<void(uint8_t*, const uint8_t*)> MessageFunction;	
 	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
 	typedef std::function<void(uint8_t*, String)> PairedFunction;	
 	typedef std::function<void(uint8_t*, String)> ConnectedFunction;	
@@ -54,8 +54,8 @@ class SimpleEspNowConnection
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
-	bool 			  sendMessage(char* message, String address = "");
-	bool 			  sendMessageOld(char* message, String address = "");
+	bool 			  sendMessage(uint8_t* message, size_t len, String address = "");
+	bool 			  sendMessageOld(uint8_t* message, String address = "");
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
 	bool 			  endPairing();
@@ -84,13 +84,13 @@ class SimpleEspNowConnection
 				public:
 					DeviceBufferObject();
 					DeviceBufferObject(long id, int counter, int packages, uint8_t *device);
-					DeviceBufferObject(long id, int counter, int packages, uint8_t *device, char* message, int len);
+					DeviceBufferObject(long id, int counter, int packages, uint8_t *device, uint8_t* message, size_t len);
 					~DeviceBufferObject();
 
 					long _id;
 					uint8_t _device[6];
-					char _message[235];
-					int _len;
+					uint8_t _message[235];
+					size_t _len;
 					int _counter;
 					int _packages;
 			};		
@@ -98,13 +98,13 @@ class SimpleEspNowConnection
 			DeviceMessageBuffer();
 			~DeviceMessageBuffer();
 			
-			bool createBuffer(uint8_t *device, char* message);
+			bool createBuffer(uint8_t *device, uint8_t* message, size_t len);
 			bool createBuffer(uint8_t *device, long id, int packages);
-			void addBuffer(uint8_t *device, long id, uint8_t *buffer, int len, int package);
-			char* getBuffer(uint8_t *device, int packages);
+			void addBuffer(uint8_t *device, long id, uint8_t *buffer, size_t len, int package);
+			uint8_t* getBuffer(uint8_t *device, long id, int packages);
 			SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* getNextBuffer();
 			bool deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo);
-			bool deleteBuffer(uint8_t *device);
+			bool deleteBuffer(uint8_t *device, long id);
 
 			DeviceBufferObject *_dbo[MaxBufferSize]; // buffer for messages			
 	};
@@ -123,8 +123,8 @@ class SimpleEspNowConnection
 				   
 	bool initServer();
 	bool initClient();	
-	void prepareSendPackages(char* message, String address);
-	bool sendPackage(long id, int package, int sum, char* message, int messagelen, uint8_t* address);
+	void prepareSendPackages(uint8_t* message, size_t len, String address);
+	bool sendPackage(long id, int package, int sum, uint8_t* message, size_t messagelen, uint8_t* address);
 	
 	uint8_t* strToMac(const char* str);	
 	

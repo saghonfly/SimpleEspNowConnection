@@ -37,9 +37,9 @@ void OnSendError(uint8_t* ad)
   Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
 }
 
-void OnMessage(uint8_t* ad, const char* message)
+void OnMessage(uint8_t* ad, const uint8_t* message)
 {
-  Serial.println("MESSAGE:'"+String(message)+"' from "+simpleEspConnection.macToStr(ad));
+  Serial.println("MESSAGE:'"+String((char *)message)+"' from "+simpleEspConnection.macToStr(ad));
 
 //  clientAddress = simpleEspConnection.macToStr(ad);  
 
@@ -57,7 +57,7 @@ void OnConnected(uint8_t *ga, String ad)
 {
   Serial.println("EspNowConnection : Client '"+ad+"' connected! ");
 
-  simpleEspConnection.sendMessage("Message at OnConnected from Server", ad);
+  simpleEspConnection.sendMessage((uint8_t *)"Message at OnConnected from Server", 34, ad);
 }
 
 void setup() 
@@ -104,7 +104,7 @@ void loop()
       }      
       else if(inputString == "sendtest")
       {
-        if(!simpleEspConnection.sendMessage("This comes from the server", clientAddress))
+        if(!simpleEspConnection.sendMessage((uint8_t *)"This comes from the server", 26, clientAddress))
         {
           Serial.println("SENDING TO '"+clientAddress+"' WAS NOT POSSIBLE!");
         }

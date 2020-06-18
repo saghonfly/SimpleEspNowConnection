@@ -33,12 +33,12 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 
-char temp[2200];
+uint8_t temp[2200];
 
 
-char* getBigMessage()
+uint8_t* getBigMessage()
 {
-  snprintf(temp, 2200,  
+  memcpy(temp,  
 "\
 One, remember to look up at the stars and not down at your feet.\
 Two, never give up work. Work gives you meaning and purpose and \
@@ -55,12 +55,18 @@ to free ourselves from this prison by widening our circle of compassion to \
 embrace all living creatures and the whole of nature in its beauty.\
 \
 Fantasy is escapist, and that is its glory. \
-If a soldier is imprisioned by the enemy, don't we consider \
+If a soldier is 1imprisioned by the enemy, don't we consider \
 it his duty to escape?. . .If we value the freedom of mind and soul, \
 if we're partisans of liberty, then it's our plain duty to escape, \
 and to take as many people with us as we can!\
 \
-");  
+Fantasy is escapist, and that is its glory. \
+If a soldier is 2imprisioned by the enemy, don't we consider \
+it his duty to escape?. . .If we value the freedom of mind and soul, \
+if we're partisans of liberty, then it's our plain duty to escape, \
+and to take as many people with us as we can!\
+\
+", 1335);  
 
   return temp;
 }
@@ -70,9 +76,9 @@ void OnSendError(uint8_t* ad)
   Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
 }
 
-void OnMessage(uint8_t* ad, const char* message)
+void OnMessage(uint8_t* ad, const uint8_t* message)
 {
-  Serial.println("MESSAGE:"+String(message));
+  Serial.println("MESSAGE:"+String((char *)message));
 }
 
 void OnNewGatewayAddress(uint8_t *ga, String ad)
@@ -126,14 +132,18 @@ void loop()
       }      
       else if(inputString == "send")
       {
-        if(!simpleEspConnection.sendMessage("This comes from the Client"))
+        if(!simpleEspConnection.sendMessage((uint8_t *)"This comes from the Client", 26))
         {
           Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }
       }
       else if(inputString == "bigsend")
       {
-        if(!simpleEspConnection.sendMessage(getBigMessage()))
+        size_t len = 1335;
+
+        Serial.printf("will send %d bytes now...\n", len);
+        
+        if(!simpleEspConnection.sendMessage((uint8_t *)getBigMessage(), len))
         {
           Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }
