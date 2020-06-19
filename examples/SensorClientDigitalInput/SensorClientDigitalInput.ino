@@ -50,12 +50,12 @@ void OnSendError(uint8_t* ad)
   Serial.println("Sending to '"+simpleEspConnection.macToStr(ad)+"' was not possible!");  
 }
 
-void OnMessage(uint8_t* ad, const char* message)
+void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
 {
-  Serial.println("MESSAGE from server:"+String(message));
+  Serial.printf("MESSAGE from server:%s\n", (char *)message);
 
-  if(String(message).substring(0,8) == "timeout:")
-    timeout = atoi( String(message).substring(8).c_str() );
+  if(String((char *)message).substring(0,8) == "timeout:")
+    timeout = atoi( String((char *)message).substring(8).c_str() );
 
   writeConfig();   
 }

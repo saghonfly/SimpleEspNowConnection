@@ -37,9 +37,9 @@ void OnSendError(uint8_t* ad)
   Serial.println("Sending to '"+simpleEspConnection.macToStr(ad)+"' was not possible!");  
 }
 
-void OnMessage(uint8_t* ad, const char* message)
+void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
 {
-  Serial.println("Client '"+simpleEspConnection.macToStr(ad)+"' has sent me '"+String(message)+"'");
+  Serial.println("Client '"+simpleEspConnection.macToStr(ad)+"' has sent me '"+String((char *)message)+"'");
 }
 
 void OnPaired(uint8_t *ga, String ad)
