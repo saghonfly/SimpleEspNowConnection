@@ -33,15 +33,10 @@ SimpleEspNowConnection simpleEspConnection(SimpleEspNowRole::CLIENT);
 String inputString;
 String serverAddress;
 
-uint8_t temp[2200];
-
-
-uint8_t* getBigMessage()
+bool sendBigMessage()
 {
-  memcpy(temp,  
-"\
-One, remember to look up at the stars and not down at your feet.\
-Two, never give up work. Work gives you meaning and purpose and \
+  char bigMessage[] = "\
+One, remember to look up at the stars and not down at your feet. Two, never give up work. Work gives you meaning and purpose and \
 life is empty without it. Three, if you are lucky enough to find love,\
 remember it is there and don't throw it away.\
 \
@@ -66,9 +61,10 @@ it his duty to escape?. . .If we value the freedom of mind and soul, \
 if we're partisans of liberty, then it's our plain duty to escape, \
 and to take as many people with us as we can!\
 \
-", 1335);  
+das sind die letzten zeichen\
+";  
 
-  return temp;
+ return(simpleEspConnection.sendMessage((uint8_t *)bigMessage, strlen(bigMessage)+1));  
 }
 
 void OnSendError(uint8_t* ad)
@@ -76,7 +72,7 @@ void OnSendError(uint8_t* ad)
   Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
 }
 
-void OnMessage(uint8_t* ad, const uint8_t* message)
+void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
 {
   Serial.println("MESSAGE:"+String((char *)message));
 }
@@ -139,11 +135,7 @@ void loop()
       }
       else if(inputString == "bigsend")
       {
-        size_t len = 1335;
-
-        Serial.printf("will send %d bytes now...\n", len);
-        
-        if(!simpleEspConnection.sendMessage((uint8_t *)getBigMessage(), len))
+        if(!sendBigMessage())
         {
           Serial.println("SENDING TO '"+serverAddress+"' WAS NOT POSSIBLE!");
         }

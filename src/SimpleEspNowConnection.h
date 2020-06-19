@@ -39,7 +39,7 @@ typedef enum SimpleEspNowRole
 class SimpleEspNowConnection 
 {   
   public:
-	typedef std::function<void(uint8_t*, const uint8_t*)> MessageFunction;	
+	typedef std::function<void(uint8_t*, const uint8_t*, size_t len)> MessageFunction;	
 	typedef std::function<void(uint8_t*, String)> NewGatewayAddressFunction;	
 	typedef std::function<void(uint8_t*, String)> PairedFunction;	
 	typedef std::function<void(uint8_t*, String)> ConnectedFunction;	
@@ -101,7 +101,8 @@ class SimpleEspNowConnection
 			bool createBuffer(uint8_t *device, uint8_t* message, size_t len);
 			bool createBuffer(uint8_t *device, long id, int packages);
 			void addBuffer(uint8_t *device, long id, uint8_t *buffer, size_t len, int package);
-			uint8_t* getBuffer(uint8_t *device, long id, int packages);
+			uint8_t* getBuffer(uint8_t *device, long id, int packages, size_t len);
+			size_t getBufferSize(uint8_t *device, long id, int packages);
 			SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* getNextBuffer();
 			bool deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo);
 			bool deleteBuffer(uint8_t *device, long id);

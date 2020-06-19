@@ -37,10 +37,16 @@ void OnSendError(uint8_t* ad)
   Serial.println("SENDING TO '"+simpleEspConnection.macToStr(ad)+"' WAS NOT POSSIBLE!");
 }
 
-void OnMessage(uint8_t* ad, const uint8_t* message)
+void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
 {
-  Serial.println("MESSAGE:'"+String((char *)message)+"' from "+simpleEspConnection.macToStr(ad));
+  char output[len+1];
+  output[len] = 0;
 
+  memcpy(output, message, len);
+  Serial.printf("MESSAGE:[%d]%s from %s\n", len, output, simpleEspConnection.macToStr(ad).c_str());
+
+  Serial.println(ESP.getFreeHeap(),DEC);
+  
 //  clientAddress = simpleEspConnection.macToStr(ad);  
 
 //  simpleEspConnection.sendMessage("Message at OnMessage from Server", clientAddress);  

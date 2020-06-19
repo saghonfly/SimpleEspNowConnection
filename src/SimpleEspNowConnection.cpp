@@ -126,7 +126,7 @@ void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, lon
 		{
 			memcpy(_dbo[i]->_message, buffer, len);
 			_dbo[i]->_len = len;
-				
+								
 			break;
 		}
 		
@@ -134,20 +134,33 @@ void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, lon
 	
 }
 
-uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device, long id, int packages)
+size_t SimpleEspNowConnection::DeviceMessageBuffer::getBufferSize(uint8_t *device, long id, int packages)
 {
-	uint8_t bu[packages*235+1];
-	memset(bu, '\0', packages*235+1);
+	size_t s = 0;
 	
+    for(int i = 0;i<MaxBufferSize; i++)
+	{
+		if(_dbo[i] != NULL && memcmp(_dbo[i]->_device, device, 6) == 0 && _dbo[i]->_id == id)
+			s+=_dbo[i]->_len;
+	}
+	
+	return s;
+}
+
+uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device, long id, int packages, size_t len)
+{
+	uint8_t* bu = new uint8_t[len];
+//	memset(bu, '\0', packages*235+1);
+
 	int counter = 0;
 	int sumlen = 0;
 	
     for(int i = 0;i<MaxBufferSize; i++)
     {
       if(_dbo[i] != NULL && memcmp(_dbo[i]->_device, device, 6) == 0 && _dbo[i]->_id == id)
-      {
-		memcpy(bu+(counter*235), _dbo[i]->_message, _dbo[i]->_len);
-				
+      {		
+		memcpy(&bu[sumlen], _dbo[i]->_message, _dbo[i]->_len);
+		
 		counter++;
 		sumlen += _dbo[i]->_len;
 		
@@ -155,9 +168,7 @@ uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device,
 			break;
       }
     }	
-	
-	Serial.printf("sumlen = %d\n", sumlen);
-	
+		
 	return bu;
 }
 
@@ -480,7 +491,6 @@ bool SimpleEspNowConnection::sendPackage(long id, int package, int sum, uint8_t*
 {
 	char sendMessage[messagelen+7];
 
-    Serial.printf("sendPackage begin %d\n", messagelen);
 	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
 	sendMessage[1] = package;	
 	sendMessage[2] = sum;	
@@ -670,11 +680,17 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 			{
 				if(data[2] > 1)
 				{
-					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, simpleEspNowConnection->deviceReceiveMessageBuffer.getBuffer(mac, id, data[2]));
+					size_t blen = simpleEspNowConnection->deviceReceiveMessageBuffer.getBufferSize(mac, id, data[2]);
+					uint8_t *bb = simpleEspNowConnection->deviceReceiveMessageBuffer.getBuffer(mac, id, data[2], blen);
+
+					simpleEspNowConnection->_MessageFunction(	(uint8_t *)mac, 
+																bb,
+																blen);
+					delete(bb);
 					simpleEspNowConnection->deviceReceiveMessageBuffer.deleteBuffer(mac, id);
 				}
 				else					
-					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer);
+					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer, sizeof(buffer));
 			}
 		}
 		if(simpleEspNowConnection->_PairedFunction)
