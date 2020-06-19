@@ -3,11 +3,11 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.0.3
+  Version : 1.1.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 15 Mai 2020
+  Modified 19 Jun 2020
   By Erich O. Pintar
 */
 
@@ -49,12 +49,13 @@ class SimpleEspNowConnection
   
     SimpleEspNowConnection(SimpleEspNowRole role);
 
-	bool              begin(bool supportLooping = false);
+	bool              begin();
 	void              loop();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
 	bool 			  sendMessage(uint8_t* message, size_t len, String address = "");
+	bool 			  sendMessage(char* message, String address = "");
 	bool 			  sendMessageOld(uint8_t* message, String address = "");
 	bool              setPairingBlinkPort(int pairingGPIO, bool invers = true);
 	bool 			  startPairing(int timeoutSec = 0);
@@ -69,6 +70,7 @@ class SimpleEspNowConnection
 	void 			  onPairingFinished(PairingFinishedFunction fn);
 	
 	String 			  macToStr(const uint8_t* mac);
+	String 			  myAddress;
 
   protected:    
 	typedef enum SimpleEspNowMessageType

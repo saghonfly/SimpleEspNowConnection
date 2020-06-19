@@ -3,17 +3,17 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.0.3
+  Version : 1.1.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 15 Mai 2020
+  Modified 19 Mai 2020
   By Erich O. Pintar
 */
 
 #include "SimpleEspNowConnection.h"
 
-#define DEBUG
+//#define DEBUG
 
 SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject()
 {
@@ -28,8 +28,6 @@ SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObj
 	_len = len;
 	_counter = counter;
 	_packages = packages;	
-	
-//	Serial.printf("sss = %s\n", _message);
 }
 
 SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, uint8_t *device)
@@ -150,7 +148,6 @@ size_t SimpleEspNowConnection::DeviceMessageBuffer::getBufferSize(uint8_t *devic
 uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device, long id, int packages, size_t len)
 {
 	uint8_t* bu = new uint8_t[len];
-//	memset(bu, '\0', packages*235+1);
 
 	int counter = 0;
 	int sumlen = 0;
@@ -180,9 +177,6 @@ bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(uint8_t *device, 
       {
         delete _dbo[i];
         _dbo[i] = NULL;
-#ifdef DEBUG
-			Serial.printf("dbo deleted = %d\n", i);
-#endif			
       }
     }	
 }
@@ -195,10 +189,6 @@ bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(SimpleEspNowConne
 		{
 			delete _dbo[i];
 			_dbo[i] = NULL;
-			
-#ifdef DEBUG
-			Serial.printf("dbo deleted = %d\n", i);
-#endif			
 			return true;
 		}
 	}
@@ -217,14 +207,16 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 	_lastSentTime = millis();
 }
 
-bool SimpleEspNowConnection::begin(bool supportLooping)
+bool SimpleEspNowConnection::begin()
 {	
-	_supportLooping = supportLooping;
+	_supportLooping = true;
 
 	WiFi.mode(WIFI_STA);	
 
 	WiFi.persistent(false);
 	WiFi.macAddress(_myAddress);	
+
+	myAddress = macToStr(_myAddress);
 
 	if (esp_now_init() != 0) 
 	{
@@ -454,9 +446,14 @@ bool SimpleEspNowConnection::endPairing()
 
 void SimpleEspNowConnection::prepareSendPackages(uint8_t* message, size_t len, String address)
 {
-	uint8_t *mac = strToMac(address.c_str());
-			
+	uint8_t *mac = strToMac(address.c_str());		
+		
 	deviceSendMessageBuffer.createBuffer(mac, message, len);	
+}
+
+bool SimpleEspNowConnection::sendMessage(char* message, String address)
+{
+	return sendMessage((uint8_t*)message, strlen(message)+1, address);
 }
 
 bool SimpleEspNowConnection::sendMessage(uint8_t* message, size_t len, String address)
@@ -495,7 +492,7 @@ bool SimpleEspNowConnection::sendPackage(long id, int package, int sum, uint8_t*
 	sendMessage[1] = package;	
 	sendMessage[2] = sum;	
 	memcpy(sendMessage+3, &id, 4);	
-	memcpy(sendMessage+7, message, messagelen);
+	memcpy(sendMessage+7, message, messagelen);	
 	
 	if(_role == SimpleEspNowRole::SERVER)
 	{
@@ -505,12 +502,11 @@ bool SimpleEspNowConnection::sendPackage(long id, int package, int sum, uint8_t*
 #elif defined(ESP8266)		
 		esp_now_add_peer(address, ESP_NOW_ROLE_COMBO, simpleEspNowConnection->_channel, NULL, 0);
 #endif
-		esp_now_send(address, (uint8_t *) sendMessage, messagelen+7);
+		
+		esp_now_send(address, (uint8_t *) sendMessage, messagelen+7);		
 		_openTransaction = true;
 
 		esp_now_del_peer(address);
-
-		delete address;
 	}
 	else
 	{		
@@ -642,7 +638,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 				esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
 #endif				
 				simpleEspNowConnection->endPairing();
-				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));
+				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)mac)));
 				
 				uint8_t sendMessage[13];
 				long id = millis();
@@ -682,7 +678,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 				{
 					size_t blen = simpleEspNowConnection->deviceReceiveMessageBuffer.getBufferSize(mac, id, data[2]);
 					uint8_t *bb = simpleEspNowConnection->deviceReceiveMessageBuffer.getBuffer(mac, id, data[2], blen);
-
+					
 					simpleEspNowConnection->_MessageFunction(	(uint8_t *)mac, 
 																bb,
 																blen);
@@ -690,7 +686,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 					simpleEspNowConnection->deviceReceiveMessageBuffer.deleteBuffer(mac, id);
 				}
 				else					
-					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer, sizeof(buffer));
+					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer, len-7);
 			}
 		}
 		if(simpleEspNowConnection->_PairedFunction)
