@@ -27,8 +27,9 @@ onConnected					KEYWORD2
 onSendError					KEYWORD2
 onSendDone					KEYWORD2
 macToStr					KEYWORD2
-canSend						KEYWORD2
-getMyAddress				KEYWORD2
+isSendBufferEmpty			KEYWORD2
+loop						KEYWORD2
+myAddress					KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
