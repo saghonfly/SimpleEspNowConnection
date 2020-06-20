@@ -26,7 +26,7 @@
 
   Created 11 Mai 2020
   By Erich O. Pintar
-  Modified 12 Mai 2020
+  Modified 19 Jun 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -50,12 +50,12 @@ void OnSendError(uint8_t* ad)
   Serial.println("Sending to '"+simpleEspConnection.macToStr(ad)+"' was not possible!");  
 }
 
-void OnMessage(uint8_t* ad, const char* message)
+void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
 {
-  Serial.println("MESSAGE from server:"+String(message));
+  Serial.printf("MESSAGE from server:%s\n", (char *)message);
 
-  if(String(message).substring(0,8) == "timeout:")
-    timeout = atoi( String(message).substring(8).c_str() );
+  if(String((char *)message).substring(0,8) == "timeout:")
+    timeout = atoi( String((char *)message).substring(8).c_str() );
 
   writeConfig();   
 }
@@ -159,10 +159,15 @@ void setup()
 
 void loop() 
 {  
+  simpleEspConnection.loop();
+  
   if(pairingMode) // do not go to sleep if pairing mode is ongoing
     return;
     
-  if(millis() < 100)  // wait half a second for message from server otherwise go to sleep
+  if(millis() < 100)  // wait 100 millisecond for message from server otherwise go to sleep
+    return;
+
+  if(!simpleEspConnection.isSendBufferEmpty())
     return;
 
   Serial.printf("Going to sleep...I was up for %i ms...will come back in %d seconds\n", millis(), timeout); 

@@ -19,7 +19,7 @@
 
   Created 11 Mai 2020
   By Erich O. Pintar
-  Modified 12 Mai 2020
+  Modified 19 Jun 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -37,9 +37,9 @@ void OnSendError(uint8_t* ad)
   Serial.println("Sending to '"+simpleEspConnection.macToStr(ad)+"' was not possible!");  
 }
 
-void OnMessage(uint8_t* ad, const char* message)
+void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
 {
-  Serial.println("Client '"+simpleEspConnection.macToStr(ad)+"' has sent me '"+String(message)+"'");
+  Serial.println("Client '"+simpleEspConnection.macToStr(ad)+"' has sent me '"+String((char *)message)+"'");
 }
 
 void OnPaired(uint8_t *ga, String ad)
@@ -62,7 +62,7 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println();
-   clientAddress = "ECFABC0CE7A2"; // Test if you know the client
+   // clientAddress = "ECFABC0CE7A2"; // Test if you know the client
 
   simpleEspConnection.begin();
   simpleEspConnection.setPairingBlinkPort(2);
@@ -74,6 +74,8 @@ void setup()
 
 void loop() 
 {
+  simpleEspConnection.loop();
+  
   while (Serial.available()) 
   {
     char inChar = (char)Serial.read();

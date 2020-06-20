@@ -18,6 +18,7 @@ The library comes with a number of example sketches. See File > Examples > Simpl
 - In theory, infinite number of clients can be used to communicate with one server
 - Maximum number of bytes per message can extend EspNow linitation of 250 bytes.
 
+
 ## Licence
 
 This code is released under the MIT License.

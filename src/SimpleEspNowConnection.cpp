@@ -3,39 +3,41 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.0.4
+  Version : 1.1.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-  Modified 11 Jun 2020
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
-=======
-  Modified 13 Mai 2020
->>>>>>> parent of 7128455... Update
+  Modified 19 Mai 2020
   By Erich O. Pintar
 */
 
 #include "SimpleEspNowConnection.h"
 
-#define DEBUG
+//#define DEBUG
 
-SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(uint8_t *device, int packages, long id)
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject()
 {
-	memcpy(this->_devicename, device, 6);
-	this->_packages = packages;
-	this->_id = id;
+}
+
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, uint8_t *device, uint8_t* message, size_t len)
+{
+	_id = id;
+	memcpy(_device, device, 6);
+	memset(_message, '\0', 235);
+	memcpy(_message, message, len);
+	_len = len;
+	_counter = counter;
+	_packages = packages;	
+}
+
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, uint8_t *device)
+{
+	_id = id;
+	memcpy(_device, device, 6);
+	memset(_message, '\0', 235);
+	_len = 0;
+	_counter = counter;
+	_packages = packages;
 }
 
 SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::~DeviceBufferObject()
@@ -44,80 +46,167 @@ SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::~DeviceBufferOb
 
 SimpleEspNowConnection::DeviceMessageBuffer::DeviceMessageBuffer()
 {
+    for(int i = 0; i<MaxBufferSize; i++)
+		_dbo[i] = NULL;
 }
 
 SimpleEspNowConnection::DeviceMessageBuffer::~DeviceMessageBuffer()
 {
 }
 
-void SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, int packages)
-{		
+bool SimpleEspNowConnection::DeviceMessageBuffer::isSendBufferEmpty()
+{
+    for(int i = 0; i<MaxBufferSize; i++)
+    {
+		if(_dbo[i] != NULL)
+		{
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* SimpleEspNowConnection::DeviceMessageBuffer::getNextBuffer()
+{
+    for(int i = 0; i<MaxBufferSize; i++)
+    {
+		if(_dbo[i] != NULL)
+		{
+			return _dbo[i];
+		}
+	}
+	
+	return NULL;
+}
+
+bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, long id, int packages)
+{
 	int counter = 0;
+
+    for(int i = 0; i<MaxBufferSize; i++)
+    {
+		if(_dbo[i] == NULL)
+		{
+			_dbo[i] = new DeviceBufferObject(id, counter+1, packages, device);
+
+			counter++;
+			
+			if(counter >= packages)
+				break;
+		}
+    }		
+
+	return true;
+}
+
+bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, uint8_t* message, size_t len)
+{		
+	int packages = len / 235 + 1;
+	int messagelen;
+	int counter = 0;
+	int pos = 0;
 	long id = millis();
 
     for(int i = 0; i<MaxBufferSize; i++)
     {
-      if(_dbo[i] == NULL)
-      {
-        _dbo[i] = new DeviceBufferObject(device, packages, id);
-		counter++;
-		
-		if(counter >= packages)
-			break;
-      }
+		if(_dbo[i] == NULL)
+		{			
+			messagelen = len - pos > 235 ? 235 : len - pos;
+
+			_dbo[i] = new DeviceBufferObject(id, counter+1, packages, device, message+(counter*235), messagelen);
+			
+			counter++;
+			pos+=235;
+			
+			if(counter >= packages)
+				break;
+		}
     }	
+
+	return true;
 }
 
-void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, uint8_t *buffer, int len, int package)
+void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, long id, uint8_t *buffer, size_t len, int package)
 {
     for(int i = 0;i<MaxBufferSize; i++)
     {
-      if(_dbo[i] != NULL && memcmp(_dbo[i]->_devicename, device, 6) == 0)
+      if(_dbo[i] != NULL && memcmp(_dbo[i]->_device, device, 6) == 0 && 
+		 _dbo[i]->_counter == package+1 &&
+		 _dbo[i]->_id == id)
 		{
-			memcpy(_dbo[i]->_buffer, buffer, len);
-			_dbo[i]->_package = package;
-
+			memcpy(_dbo[i]->_message, buffer, len);
+			_dbo[i]->_len = len;
+								
 			break;
 		}
+		
 	}	
+	
 }
 
-uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device)
+size_t SimpleEspNowConnection::DeviceMessageBuffer::getBufferSize(uint8_t *device, long id, int packages)
 {
+	size_t s = 0;
+	
+    for(int i = 0;i<MaxBufferSize; i++)
+	{
+		if(_dbo[i] != NULL && memcmp(_dbo[i]->_device, device, 6) == 0 && _dbo[i]->_id == id)
+			s+=_dbo[i]->_len;
+	}
+	
+	return s;
+}
+
+uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device, long id, int packages, size_t len)
+{
+	uint8_t* bu = new uint8_t[len];
+
+	int counter = 0;
+	int sumlen = 0;
+	
     for(int i = 0;i<MaxBufferSize; i++)
     {
-      if(_dbo[i] != NULL && memcmp(_dbo[i]->_devicename, device, 6) == 0)
-      {
-		return _dbo[i]->_buffer;
-        break;
+      if(_dbo[i] != NULL && memcmp(_dbo[i]->_device, device, 6) == 0 && _dbo[i]->_id == id)
+      {		
+		memcpy(&bu[sumlen], _dbo[i]->_message, _dbo[i]->_len);
+		
+		counter++;
+		sumlen += _dbo[i]->_len;
+		
+		if(counter == packages)
+			break;
       }
     }	
+		
+	return bu;
 }
 
-void SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(DeviceBufferObject* dbo)
+bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(uint8_t *device, long id)
 {
     for(int i = 0;i<MaxBufferSize; i++)
     {
-      if(_dbo[i] == dbo)
+      if(_dbo[i] != NULL && memcmp(_dbo[i]->_device, device, 6) == 0 && _dbo[i]->_id == id)
       {
         delete _dbo[i];
         _dbo[i] = NULL;
-        break;
       }
     }	
 }
 
-void SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(uint8_t *device)
+bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo)
 {
-    for(int i = 0;i<MaxBufferSize; i++)
+    for(int i = 0; i<MaxBufferSize; i++)
     {
-      if(_dbo[i] != NULL && memcmp(_dbo[i]->_devicename, device, 6) == 0)
-      {
-        delete _dbo[i];
-        _dbo[i] = NULL;
-        break;
-      }
-    }	
+		if(_dbo[i] == dbo)
+		{
+			delete _dbo[i];
+			_dbo[i] = NULL;
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role) 
@@ -131,14 +220,16 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 	_lastSentTime = millis();
 }
 
-bool SimpleEspNowConnection::begin(bool supportLooping)
+bool SimpleEspNowConnection::begin()
 {	
-	_supportLooping = supportLooping;
-	
+	_supportLooping = true;
+
 	WiFi.mode(WIFI_STA);	
 
 	WiFi.persistent(false);
 	WiFi.macAddress(_myAddress);	
+
+	myAddress = macToStr(_myAddress);
 
 	if (esp_now_init() != 0) 
 	{
@@ -160,7 +251,7 @@ bool SimpleEspNowConnection::begin(bool supportLooping)
 #endif	
 	{//this is the function that is called to send data
 #ifdef DEBUG
-	  Serial.printf("send_cb, send done, status = %i\n", sendStatus);
+	  Serial.printf("--- send_cb, send done, status = %i\n", sendStatus);
 #endif	
 		simpleEspNowConnection->_lastSentTime = millis();
 		simpleEspNowConnection->_openTransaction = false;
@@ -178,7 +269,6 @@ bool SimpleEspNowConnection::begin(bool supportLooping)
 		}		
 	});
 	
-	
 	if(this->_role == SimpleEspNowRole::SERVER)
 	{
 		initServer();
@@ -189,11 +279,6 @@ bool SimpleEspNowConnection::begin(bool supportLooping)
 	}
 	
 	return true;
-}
-
-bool SimpleEspNowConnection::canSend()
-{
-	return !_openTransaction && (_lastSentTime + 200) < millis();
 }
 
 bool SimpleEspNowConnection::setPairingBlinkPort(int pairingGPIO, bool invers)
@@ -215,30 +300,29 @@ void SimpleEspNowConnection::pairingTickerServer()
 		String(simpleEspNowConnection->_pairingMaxCount));
 #endif
 
-	char sendMessage[9];
+	char sendMessage[13];
+	long id = millis();
 	
 	sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
 	sendMessage[1] = 1;	// 1st package
 	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
-	sendMessage[8] = 0;
-	
-	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
+	memcpy(sendMessage+3, &id, 4);	
+
+	memcpy(sendMessage+7, simpleEspNowConnection->_myAddress, 6);
 
 #if defined(ESP32)
 	memcpy(&simpleEspNowConnection->_clientMacPeerInfo.peer_addr, simpleEspNowConnection->_pairingMac, 6);
 	esp_now_add_peer(&simpleEspNowConnection->_clientMacPeerInfo);
-#elif defined(ESP8266)		
-	esp_now_add_peer(simpleEspNowConnection->_pairingMac, ESP_NOW_ROLE_COMBO, simpleEspNowConnection->_channel, NULL, 0);
 #endif
 
 
     esp_now_send(simpleEspNowConnection->_pairingMac, 
 		(uint8_t *)sendMessage, 
 		9);
-
-	simpleEspNowConnection->_openTransaction = true;
 	
+#if defined(ESP32)
 	esp_now_del_peer(simpleEspNowConnection->_pairingMac);
+#endif
 	
 	if(simpleEspNowConnection->_pairingMaxCount > 0)
 	{
@@ -373,39 +457,117 @@ bool SimpleEspNowConnection::endPairing()
 	return true;
 }
 
-void SimpleEspNowConnection::prepareSendPackages(char* message, String address)
+void SimpleEspNowConnection::prepareSendPackages(uint8_t* message, size_t len, String address)
 {
-	Serial.println("address is " + address);
-	uint8_t *mac = strToMac(address.c_str());
+	uint8_t *mac = strToMac(address.c_str());		
 		
-	int packages = strlen(message) / 140 + 1;
-	int messagelen;
-
-#ifdef DEBUG
-	Serial.printf("Number of bytes %d, number of packages %d\n", strlen(message), packages);
-#endif
-
-	_deviceSendMessageBuffer.createBuffer(mac, packages);	
-
-	for(int i = 0; i<packages; i++)
-	{		
-		messagelen = strlen(message+(i*140)) > 140 ? 140 : strlen(message+(i*140));		
-		_deviceSendMessageBuffer.addBuffer(mac, (uint8_t *)message+(i*140), messagelen, i);
-	}	
+	deviceSendMessageBuffer.createBuffer(mac, message, len);	
 }
 
-bool SimpleEspNowConnection::sendPackage(int package, int sum, char* message, String address)
+bool SimpleEspNowConnection::sendMessage(char* message, String address)
 {
-	int messagelen = strlen(message) > 140 ? 140 : strlen(message);
+	return sendMessage((uint8_t*)message, strlen(message)+1, address);
+}
+
+bool SimpleEspNowConnection::sendMessage(uint8_t* message, size_t len, String address)
+{
+	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
+		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ))
+	{
+		return false;
+	}
+
+	int packages = len / 235 + 1;
+
+	if(!_supportLooping && packages > 1)
+		return false;
+
+#ifdef DEBUG
+	Serial.printf("Number of bytes %d, number of packages %d\n", len, packages);
+#endif
 	
-	char sendMessage[messagelen+3];
+	if(!_supportLooping)
+		return sendMessageOld(message, address);
 	
+	if(_role == SimpleEspNowRole::CLIENT)
+		address = macToStr(_serverMac);
+	
+	prepareSendPackages(message, len, address);
+	
+	return true;
+}
+
+bool SimpleEspNowConnection::sendPackage(long id, int package, int sum, uint8_t* message, size_t messagelen, uint8_t* address)
+{
+	char sendMessage[messagelen+7];
+
 	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
-	sendMessage[1] = package+1;	
+	sendMessage[1] = package;	
 	sendMessage[2] = sum;	
-	sendMessage[messagelen+3] = 0;
+	memcpy(sendMessage+3, &id, 4);	
+	memcpy(sendMessage+7, message, messagelen);	
 	
-	memcpy(sendMessage+3, message, messagelen);
+	if(_role == SimpleEspNowRole::SERVER)
+	{
+#if defined(ESP32)
+		memcpy(&simpleEspNowConnection->_clientMacPeerInfo.peer_addr, address, 6);
+		esp_now_add_peer(&simpleEspNowConnection->_clientMacPeerInfo);
+#elif defined(ESP8266)		
+		esp_now_add_peer(address, ESP_NOW_ROLE_COMBO, simpleEspNowConnection->_channel, NULL, 0);
+#endif
+		
+		esp_now_send(address, (uint8_t *) sendMessage, messagelen+7);		
+		_openTransaction = true;
+
+		esp_now_del_peer(address);
+	}
+	else
+	{		
+		_openTransaction = true;
+		esp_now_send(address, (uint8_t *) sendMessage, messagelen+7);
+	}
+		
+	return true;
+}
+
+bool SimpleEspNowConnection::sendMessageOld(uint8_t* message, String address)
+{
+	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
+		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ) ||
+		sizeof(message) > 235)
+	{
+		return false;
+	}
+
+	uint8_t sendMessage[sizeof(message)+7];
+	long id = millis();
+
+	sendMessage[0] = SimpleEspNowMessageType::DATA;	// Type of message
+	sendMessage[1] = 1;	// 1st package
+	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
+	memcpy(sendMessage+3, &id, 4);		
+	memcpy(sendMessage+7, message, sizeof(message));
+
+#if defined(ESP8266)
+	esp_now_register_send_cb([](uint8_t* mac, uint8_t sendStatus) 
+#elif defined(ESP32)		
+	esp_now_register_send_cb([] (const uint8_t *mac, esp_now_send_status_t sendStatus)
+#endif	
+	{//this is the function that is called to send data
+#ifdef DEBUG
+	  Serial.printf("send_cb, send done, status = %i\n", sendStatus);
+#endif	
+	  esp_now_unregister_send_cb();
+
+	  if(sendStatus != 0 && simpleEspNowConnection->_SendErrorFunction != NULL)
+	  {
+		  simpleEspNowConnection->_SendErrorFunction((uint8_t*)mac);
+	  }
+	  if(sendStatus == 0 && simpleEspNowConnection->_SendDoneFunction != NULL)
+	  {
+		  simpleEspNowConnection->_SendDoneFunction((uint8_t*)mac);
+	  }	  	  
+	});
 
 	
 	if(_role == SimpleEspNowRole::SERVER)
@@ -415,53 +577,19 @@ bool SimpleEspNowConnection::sendPackage(int package, int sum, char* message, St
 #if defined(ESP32)
 		memcpy(&simpleEspNowConnection->_clientMacPeerInfo.peer_addr, mac, 6);
 		esp_now_add_peer(&simpleEspNowConnection->_clientMacPeerInfo);
-#elif defined(ESP8266)		
-		esp_now_add_peer(mac, ESP_NOW_ROLE_COMBO, simpleEspNowConnection->_channel, NULL, 0);
 #endif
-		esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
-		_openTransaction = true;
-
+		esp_now_send(mac, (uint8_t *) sendMessage, sizeof(sendMessage));
+#if defined(ESP32)
 		esp_now_del_peer(mac);
+#endif
 
 		delete mac;
 	}
 	else
 	{		
-		esp_now_send(_serverMac, (uint8_t *) sendMessage, strlen(sendMessage));
-		_openTransaction = true;
+		esp_now_send(_serverMac, (uint8_t *) sendMessage, sizeof(sendMessage));
 	}
-		
-	return true;
-}
-
-bool SimpleEspNowConnection::sendMessage(char* message, String address)
-{
-	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
-		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ))
-	{
-		return false;
-	}
-
-	if(_supportLooping)
-	{
-		if(_role == SimpleEspNowRole::CLIENT)
-			address = macToStr(_serverMac);
-		
-		prepareSendPackages(message, address);
-		return true;
-	}
-
-	int packages = strlen(message) / 140 +1;
-
-#ifdef DEBUG
-	Serial.printf("Number of bytes %d, number of packages %d\n", strlen(message), packages);
-#endif
-
-	for(int i = 0; i<packages; i++)
-	{
-		sendPackage(i, packages, message+(i*140), address);
-	}
-
+	
 	return true;
 }
 uint8_t* SimpleEspNowConnection::strToMac(const char* str)
@@ -486,10 +614,9 @@ uint8_t* SimpleEspNowConnection::strToMac(const char* str)
 String SimpleEspNowConnection::macToStr(const uint8_t* mac)
 {
 	char macAddr[13];
+	macAddr[12] = 0;
 	
 	sprintf(macAddr, "%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);		
-
-	macAddr[12] = 0;
 
 	return String(macAddr);
 }
@@ -500,41 +627,44 @@ void SimpleEspNowConnection::onReceiveData(uint8_t *mac, uint8_t *data, uint8_t 
 #elif defined(ESP32)
 void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *data, int len)
 #endif
-{	
-	if(len <= 3)
+{
+	if(len <= 7)
 		return;
 	
-	char buffer[len-3];
-	buffer[len-2] = 0;
+	uint8_t buffer[len-6];
+	buffer[len-7] = 0;
+	long id;
 	
-	memcpy(buffer, data+3, len-2);	
+	memcpy(buffer, data+7, len-7);
+	memcpy(&id, data+3, 4);
 	
 	if(simpleEspNowConnection->_role == SimpleEspNowRole::CLIENT &&
 		simpleEspNowConnection->_pairingOngoing)
 	{
 		if(data[0] == SimpleEspNowMessageType::PAIR)			
 		{
-#if defined(ESP8266)
-			wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
-#elif defined(ESP32)
-			esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
-#endif				
-			simpleEspNowConnection->endPairing();
-			
-			char sendMessage[9];
-			
-			sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
-			sendMessage[1] = 1;	// 1st package
-			sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
-			sendMessage[8] = 0;
-			
-			memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
-			
-			esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
-			simpleEspNowConnection->_openTransaction = true;
-
 			if(simpleEspNowConnection->_NewGatewayAddressFunction)
-				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
+			{
+#if defined(ESP8266)
+				wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
+#elif defined(ESP32)
+				esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
+#endif				
+				simpleEspNowConnection->endPairing();
+				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)mac)));
+				
+				uint8_t sendMessage[13];
+				long id = millis();
+
+				sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
+				sendMessage[1] = 1;	// 1st package
+				sendMessage[2] = 1;	// from 1 package. Will be enhanced in one of the next versions
+				memcpy(sendMessage+3, &id, 4);	
+				
+				memcpy(sendMessage+7, simpleEspNowConnection->_myAddress, 6);
+				
+				esp_now_send(mac, (uint8_t *) sendMessage, sizeof(sendMessage));
+			}
 		}
 	}
 	else
@@ -543,35 +673,44 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 		{
 #ifdef DEBUG
 			Serial.printf("Package %d of %d packages\n", data[1], data[2]);
-#endif
+#endif			
+
 			if(data[1] == 1 && data[2] > 1)  // prepare memory for this device
 			{
-				simpleEspNowConnection->_deviceReceiveMessageBuffer.createBuffer(mac, data[2]);				
-				simpleEspNowConnection->_deviceReceiveMessageBuffer.addBuffer(mac, (uint8_t *)buffer, len-2, data[1]-1);
+				simpleEspNowConnection->deviceReceiveMessageBuffer.createBuffer(mac, id, data[2]);				
+				simpleEspNowConnection->deviceReceiveMessageBuffer.addBuffer(mac, id, (uint8_t *)buffer, len-7, data[1]-1);
 			}
 			else if(data[2] > 1)
 			{
-				simpleEspNowConnection->_deviceReceiveMessageBuffer.addBuffer(mac, (uint8_t *)buffer, len-2, data[1]-1);
+				simpleEspNowConnection->deviceReceiveMessageBuffer.addBuffer(mac, id, (uint8_t *)buffer, len-7, data[1]-1);
 			}
-			
+
 			if(data[1] == data[2])
 			{
 				if(data[2] > 1)
 				{
-					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, (char *)simpleEspNowConnection->_deviceReceiveMessageBuffer.getBuffer(mac));
-					simpleEspNowConnection->_deviceReceiveMessageBuffer.deleteBuffer(mac);
+					size_t blen = simpleEspNowConnection->deviceReceiveMessageBuffer.getBufferSize(mac, id, data[2]);
+					uint8_t *bb = simpleEspNowConnection->deviceReceiveMessageBuffer.getBuffer(mac, id, data[2], blen);
+					
+					simpleEspNowConnection->_MessageFunction(	(uint8_t *)mac, 
+																bb,
+																blen);
+					delete(bb);
+					simpleEspNowConnection->deviceReceiveMessageBuffer.deleteBuffer(mac, id);
 				}
 				else					
-					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer);
+					simpleEspNowConnection->_MessageFunction((uint8_t *)mac, buffer, len-7);
 			}
 		}
-		else if(data[0] == SimpleEspNowMessageType::PAIR && simpleEspNowConnection->_PairedFunction)
-		{
-			simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
+		if(simpleEspNowConnection->_PairedFunction)
+		{		
+			if(data[0] == SimpleEspNowMessageType::PAIR)			
+				simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
 		}
-		else if(data[0] == SimpleEspNowMessageType::CONNECT && simpleEspNowConnection->_ConnectedFunction)
+		if(simpleEspNowConnection->_ConnectedFunction)
 		{
-			simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
+			if(data[0] == SimpleEspNowMessageType::CONNECT)
+				simpleEspNowConnection->_ConnectedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));							
 		}
 		
 #ifdef DEBUG
@@ -615,31 +754,26 @@ bool SimpleEspNowConnection::setServerMac(uint8_t* mac)
 	Serial.println("EspNowConnection::setServerMac to "+simpleEspNowConnection->macToStr(_serverMac));
 #endif
 
-	char sendMessage[9];
+	char sendMessage[13];
+	long id = millis();
 	
 	sendMessage[0] = SimpleEspNowMessageType::CONNECT;	// Type of message
 	sendMessage[1] = 1;	// 1st package
 	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
-	sendMessage[8] = 0;
+	memcpy(sendMessage+3, &id, 4);	
+
+	sendMessage[14] = 0;
 	
-	memcpy(sendMessage+2, simpleEspNowConnection->_myAddress, 6);
+	memcpy(sendMessage+7, simpleEspNowConnection->_myAddress, 6);
 
 #if defined(ESP32)
 	memcpy(&simpleEspNowConnection->_serverMacPeerInfo.peer_addr, _serverMac, 6);
 	esp_now_add_peer(&simpleEspNowConnection->_serverMacPeerInfo);
-#elif defined(ESP8266)		
-	esp_now_add_peer(_serverMac, ESP_NOW_ROLE_COMBO, simpleEspNowConnection->_channel, NULL, 0);
 #endif
 	
-	esp_now_send(mac, (uint8_t *) sendMessage, strlen(sendMessage));
-	_openTransaction = true;
+	esp_now_send(mac, (uint8_t *) sendMessage, sizeof(sendMessage));
 	
 	return true;
-}
-
-uint8_t* SimpleEspNowConnection::getMyAddress()
-{
-	return _myAddress; 
 }
 
 void SimpleEspNowConnection::onPaired(PairedFunction fn)
@@ -677,22 +811,25 @@ void SimpleEspNowConnection::onSendDone(SendDoneFunction fn)
 	_SendDoneFunction = fn;
 }
 
-void SimpleEspNowConnection::loop()
+bool SimpleEspNowConnection::isSendBufferEmpty()
 {
-	// check the buffer
-	DeviceMessageBuffer::DeviceBufferObject *nb = _deviceSendMessageBuffer.getNextBuffer();
-	
-	if(nb != NULL)
-	{
-#ifdef DEBUG
-	Serial.printf("Send package %d of %d, %s\n", nb->_package, nb->_packages, nb->_buffer);
-#endif
+	return deviceSendMessageBuffer.isSendBufferEmpty();
+}
 
-		sendPackage(nb->_package, nb->_packages, (char *)nb->_buffer, macToStr(nb->_devicename));
-		
-		_deviceSendMessageBuffer.deleteBuffer(nb);
-	}
+bool SimpleEspNowConnection::loop()
+{
+	SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject *dbo = deviceSendMessageBuffer.getNextBuffer();
+
+	if(dbo == NULL)
+		return false;
+	if(simpleEspNowConnection->_openTransaction)
+		return true;
 	
+	sendPackage(dbo->_id, dbo->_counter, dbo->_packages, dbo->_message, dbo->_len, dbo->_device);
+	
+	deviceSendMessageBuffer.deleteBuffer(dbo);
+	
+	return !deviceSendMessageBuffer.isSendBufferEmpty();	
 }
 
 bool SimpleEspNowConnection::initServer()
