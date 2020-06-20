@@ -813,7 +813,7 @@ void SimpleEspNowConnection::onSendDone(SendDoneFunction fn)
 
 bool SimpleEspNowConnection::isSendBufferEmpty()
 {
-	return deviceSendMessageBuffer.isSendBufferEmpty();
+	return deviceSendMessageBuffer.isSendBufferEmpty() && !_openTransaction;
 }
 
 bool SimpleEspNowConnection::loop()
@@ -824,7 +824,7 @@ bool SimpleEspNowConnection::loop()
 		return false;
 	if(simpleEspNowConnection->_openTransaction)
 		return true;
-	
+
 	sendPackage(dbo->_id, dbo->_counter, dbo->_packages, dbo->_message, dbo->_len, dbo->_device);
 	
 	deviceSendMessageBuffer.deleteBuffer(dbo);
