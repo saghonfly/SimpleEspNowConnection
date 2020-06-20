@@ -50,7 +50,8 @@ class SimpleEspNowConnection
     SimpleEspNowConnection(SimpleEspNowRole role);
 
 	bool              begin();
-	void              loop();
+	bool              loop();
+	bool              isSendBufferEmpty();
 	bool              setServerMac(uint8_t* mac);
 	bool              setServerMac(String address);	
 	bool              setPairingMac(uint8_t* mac);		
@@ -106,6 +107,7 @@ class SimpleEspNowConnection
 			uint8_t* getBuffer(uint8_t *device, long id, int packages, size_t len);
 			size_t getBufferSize(uint8_t *device, long id, int packages);
 			SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* getNextBuffer();
+			bool isSendBufferEmpty();
 			bool deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo);
 			bool deleteBuffer(uint8_t *device, long id);
 

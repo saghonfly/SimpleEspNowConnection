@@ -54,6 +54,19 @@ SimpleEspNowConnection::DeviceMessageBuffer::~DeviceMessageBuffer()
 {
 }
 
+bool SimpleEspNowConnection::DeviceMessageBuffer::isSendBufferEmpty()
+{
+    for(int i = 0; i<MaxBufferSize; i++)
+    {
+		if(_dbo[i] != NULL)
+		{
+			return false;
+		}
+	}
+	
+	return true;
+}
+
 SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* SimpleEspNowConnection::DeviceMessageBuffer::getNextBuffer()
 {
     for(int i = 0; i<MaxBufferSize; i++)
@@ -798,16 +811,25 @@ void SimpleEspNowConnection::onSendDone(SendDoneFunction fn)
 	_SendDoneFunction = fn;
 }
 
-void SimpleEspNowConnection::loop()
+bool SimpleEspNowConnection::isSendBufferEmpty()
+{
+	return deviceSendMessageBuffer.isSendBufferEmpty();
+}
+
+bool SimpleEspNowConnection::loop()
 {
 	SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject *dbo = deviceSendMessageBuffer.getNextBuffer();
 
-	if(dbo == NULL || simpleEspNowConnection->_openTransaction)
-		return;
+	if(dbo == NULL)
+		return false;
+	if(simpleEspNowConnection->_openTransaction)
+		return true;
 	
 	sendPackage(dbo->_id, dbo->_counter, dbo->_packages, dbo->_message, dbo->_len, dbo->_device);
 	
 	deviceSendMessageBuffer.deleteBuffer(dbo);
+	
+	return !deviceSendMessageBuffer.isSendBufferEmpty();	
 }
 
 bool SimpleEspNowConnection::initServer()

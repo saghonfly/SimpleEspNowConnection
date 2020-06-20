@@ -26,7 +26,7 @@
 
   Created 11 Mai 2020
   By Erich O. Pintar
-  Modified 12 Mai 2020
+  Modified 19 Jun 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -159,10 +159,15 @@ void setup()
 
 void loop() 
 {  
+  simpleEspConnection.loop();
+  
   if(pairingMode) // do not go to sleep if pairing mode is ongoing
     return;
     
-  if(millis() < 100)  // wait half a second for message from server otherwise go to sleep
+  if(millis() < 100)  // wait 100 millisecond for message from server otherwise go to sleep
+    return;
+
+  if(!simpleEspConnection.isSendBufferEmpty())
     return;
 
   Serial.printf("Going to sleep...I was up for %i ms...will come back in %d seconds\n", millis(), timeout); 
