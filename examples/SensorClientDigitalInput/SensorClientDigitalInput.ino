@@ -58,6 +58,7 @@ void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
     timeout = atoi( String((char *)message).substring(8).c_str() );
 
   writeConfig();   
+  Serial.println("New timeout written to configuration");  
 }
 
 void OnNewGatewayAddress(uint8_t *ga, String ad)
