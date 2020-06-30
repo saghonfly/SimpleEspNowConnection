@@ -14,7 +14,7 @@
       "email": "eop@pintarweb.net",
       "url": "http://pintarweb.net",
       "maintainer": true
-    },
+    }
   ],
   "version": "1.1.0",
   "examples": "examples/*/*.ino",
