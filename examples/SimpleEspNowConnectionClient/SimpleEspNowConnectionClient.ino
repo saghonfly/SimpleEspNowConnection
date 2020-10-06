@@ -18,7 +18,7 @@
 
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 14 Mai 2020
+  Modified 06 Oct 2020
   By Erich O. Pintar
 
   https://github.com/saghonfly/SimpleEspNowConnection
@@ -67,7 +67,7 @@ bool sendStructMessage()
   myData.c = (float)random(1,100000)/(float)10000;
   myData.e = true;
     
-  return(!simpleEspConnection.sendMessage((uint8_t *)&myData, sizeof(myData)));
+  return(simpleEspConnection.sendMessage((uint8_t *)&myData, sizeof(myData)));
 }
 
 void OnSendError(uint8_t* ad)
@@ -105,8 +105,10 @@ void setup()
   Serial.begin(115200);
   Serial.println();
 
+  Serial.println("Setup...");
+
   simpleEspConnection.begin();
-  simpleEspConnection.setPairingBlinkPort(2);  
+//  simpleEspConnection.setPairingBlinkPort(2);  
 
 //   serverAddress = "ECFABCC08CDA"; // Test if you know the server
    simpleEspConnection.setServerMac(serverAddress);
