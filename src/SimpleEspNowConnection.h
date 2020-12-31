@@ -3,17 +3,19 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.1.0
+  Version : 1.2.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 19 Jun 2020
+  Modified 06 Oct 2020
   By Erich O. Pintar
 */
 
 #ifndef SIMPLEESPNOWCONNECTION_H
 #define SIMPLEESPNOWCONNECTION_H
 #include <Arduino.h>
+
+#define DISABLE_BROWNOUT
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -25,6 +27,11 @@ extern "C" {
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_now.h>
+
+#if defined(DISABLE_BROWNOUT)
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+#endif
 #endif
 
 #include "Ticker.h"
@@ -87,8 +94,8 @@ class SimpleEspNowConnection
 			{
 				public:
 					DeviceBufferObject();
-					DeviceBufferObject(long id, int counter, int packages, uint8_t *device);
-					DeviceBufferObject(long id, int counter, int packages, uint8_t *device, uint8_t* message, size_t len);
+					DeviceBufferObject(long id, int counter, int packages, const uint8_t *device);
+					DeviceBufferObject(long id, int counter, int packages, const uint8_t *device, const uint8_t* message, size_t len);
 					~DeviceBufferObject();
 
 					long _id;
@@ -102,15 +109,15 @@ class SimpleEspNowConnection
 			DeviceMessageBuffer();
 			~DeviceMessageBuffer();
 			
-			bool createBuffer(uint8_t *device, uint8_t* message, size_t len);
-			bool createBuffer(uint8_t *device, long id, int packages);
-			void addBuffer(uint8_t *device, long id, uint8_t *buffer, size_t len, int package);
-			uint8_t* getBuffer(uint8_t *device, long id, int packages, size_t len);
-			size_t getBufferSize(uint8_t *device, long id, int packages);
+			bool createBuffer(const uint8_t *device, const uint8_t* message, size_t len);
+			bool createBuffer(const uint8_t *device, long id, int packages);
+			void addBuffer(const uint8_t *device, long id, uint8_t *buffer, size_t len, int package);
+			uint8_t* getBuffer(const uint8_t *device, long id, int packages, size_t len);
+			size_t getBufferSize(const uint8_t *device, long id, int packages);
 			SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* getNextBuffer();
 			bool isSendBufferEmpty();
 			bool deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo);
-			bool deleteBuffer(uint8_t *device, long id);
+			bool deleteBuffer(const uint8_t *device, long id);
 
 			DeviceBufferObject *_dbo[MaxBufferSize]; // buffer for messages			
 	};

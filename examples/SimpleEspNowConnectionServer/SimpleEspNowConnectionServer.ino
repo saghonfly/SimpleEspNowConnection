@@ -67,7 +67,7 @@ bool sendStructMessage()
   myData.c = (float)random(1,100000)/(float)10000;
   myData.e = false;
     
-  return(!simpleEspConnection.sendMessage((uint8_t *)&myData, sizeof(myData), clientAddress));
+  return(simpleEspConnection.sendMessage((uint8_t *)&myData, sizeof(myData), clientAddress));
 }
 
 void OnSendError(uint8_t* ad)
@@ -114,7 +114,7 @@ void setup()
   //clientAddress = "CC50E35B56B1"; // Test if you know the client
 
   simpleEspConnection.begin();
-   simpleEspConnection.setPairingBlinkPort(2);
+//   simpleEspConnection.setPairingBlinkPort(2);
   simpleEspConnection.onMessage(&OnMessage);  
   simpleEspConnection.onPaired(&OnPaired);  
   simpleEspConnection.onSendError(&OnSendError);
