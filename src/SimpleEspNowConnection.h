@@ -57,7 +57,6 @@ class SimpleEspNowConnection
     SimpleEspNowConnection(SimpleEspNowRole role);
 
 	bool              begin();
-	void              end();
 	bool              loop();
 	bool              isSendBufferEmpty();
 	bool              setServerMac(uint8_t* mac);

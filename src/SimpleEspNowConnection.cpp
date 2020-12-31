@@ -3,11 +3,11 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.1.0
+  Version : 1.2.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 19 Mai 2020
+  Modified 06 Oct 2020
   By Erich O. Pintar
 */
 
@@ -19,7 +19,7 @@ SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObj
 {
 }
 
-SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, uint8_t *device, uint8_t* message, size_t len)
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, const uint8_t *device, const uint8_t* message, size_t len)
 {
 	_id = id;
 	memcpy(_device, device, 6);
@@ -30,7 +30,7 @@ SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObj
 	_packages = packages;	
 }
 
-SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, uint8_t *device)
+SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject::DeviceBufferObject(long id, int counter, int packages, const uint8_t *device)
 {
 	_id = id;
 	memcpy(_device, device, 6);
@@ -80,7 +80,7 @@ SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* SimpleEspNowCon
 	return NULL;
 }
 
-bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, long id, int packages)
+bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(const uint8_t *device, long id, int packages)
 {
 	int counter = 0;
 
@@ -100,7 +100,7 @@ bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, 
 	return true;
 }
 
-bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, uint8_t* message, size_t len)
+bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(const uint8_t *device, const uint8_t* message, size_t len)
 {		
 	int packages = len / 235 + 1;
 	int messagelen;
@@ -127,7 +127,7 @@ bool SimpleEspNowConnection::DeviceMessageBuffer::createBuffer(uint8_t *device, 
 	return true;
 }
 
-void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, long id, uint8_t *buffer, size_t len, int package)
+void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(const uint8_t *device, long id, uint8_t *buffer, size_t len, int package)
 {
     for(int i = 0;i<MaxBufferSize; i++)
     {
@@ -145,7 +145,7 @@ void SimpleEspNowConnection::DeviceMessageBuffer::addBuffer(uint8_t *device, lon
 	
 }
 
-size_t SimpleEspNowConnection::DeviceMessageBuffer::getBufferSize(uint8_t *device, long id, int packages)
+size_t SimpleEspNowConnection::DeviceMessageBuffer::getBufferSize(const uint8_t *device, long id, int packages)
 {
 	size_t s = 0;
 	
@@ -158,7 +158,7 @@ size_t SimpleEspNowConnection::DeviceMessageBuffer::getBufferSize(uint8_t *devic
 	return s;
 }
 
-uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device, long id, int packages, size_t len)
+uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(const uint8_t *device, long id, int packages, size_t len)
 {
 	uint8_t* bu = new uint8_t[len];
 
@@ -182,7 +182,7 @@ uint8_t* SimpleEspNowConnection::DeviceMessageBuffer::getBuffer(uint8_t *device,
 	return bu;
 }
 
-bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(uint8_t *device, long id)
+bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(const uint8_t *device, long id)
 {
     for(int i = 0;i<MaxBufferSize; i++)
     {
@@ -220,31 +220,29 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 	_lastSentTime = millis();
 }
 
-void SimpleEspNowConnection::end()
-{
-	esp_now_unregister_send_cb();
-	esp_now_unregister_recv_cb();
-  
-	esp_now_deinit();
-}
-
 bool SimpleEspNowConnection::begin()
 {	
 	_supportLooping = true;
 
-	WiFi.disconnect(true);
+#if defined(ESP32)
+#if defined(DISABLE_BROWNOUT)
+	WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+#endif
+#endif
+
 	WiFi.mode(WIFI_STA);	
 
 	WiFi.persistent(false);
 	WiFi.macAddress(_myAddress);	
-
 	myAddress = macToStr(_myAddress);
+
 
 	if (esp_now_init() != 0) 
 	{
 		Serial.println("Error initializing ESP-NOW");
 		return false;
 	}
+
 	
 #if defined(ESP8266)
 	esp_now_set_self_role(ESP_NOW_ROLE_COMBO);
@@ -483,33 +481,20 @@ bool SimpleEspNowConnection::sendMessage(uint8_t* message, size_t len, String ad
 	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
 		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ))
 	{
-#ifdef DEBUG
-		Serial.printf("sendMessage not possible with given parameter\n");
-#endif
 		return false;
 	}
 
 	int packages = len / 235 + 1;
 
 	if(!_supportLooping && packages > 1)
-	{	
-#ifdef DEBUG
-		Serial.printf("Looping not supported and packetes more than one!\n");
-#endif
 		return false;
-	}
 
 #ifdef DEBUG
 	Serial.printf("Number of bytes %d, number of packages %d\n", len, packages);
 #endif
 	
 	if(!_supportLooping)
-	{
-#ifdef DEBUG
-		Serial.printf("Use old message style for sending\n");
-#endif
 		return sendMessageOld(message, address);
-	}
 	
 	if(_role == SimpleEspNowRole::CLIENT)
 		address = macToStr(_serverMac);
@@ -676,12 +661,12 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)mac)));
 				
 				uint8_t sendMessage[13];
-				long id = millis();
+				long ids = millis();
 
 				sendMessage[0] = SimpleEspNowMessageType::PAIR;	// Type of message
 				sendMessage[1] = 1;	// 1st package
 				sendMessage[2] = 1;	// from 1 package. Will be enhanced in one of the next versions
-				memcpy(sendMessage+3, &id, 4);	
+				memcpy(sendMessage+3, &ids, 4);	
 				
 				memcpy(sendMessage+7, simpleEspNowConnection->_myAddress, 6);
 				
@@ -771,18 +756,22 @@ bool SimpleEspNowConnection::setServerMac(uint8_t* mac)
 		return false;
 	
 	memcpy(_serverMac, mac, 6);
+	simpleEspNowConnection->macToStr(_serverMac);
 	
 #ifdef DEBUG
 	Serial.println("EspNowConnection::setServerMac to "+simpleEspNowConnection->macToStr(_serverMac));
 #endif
 
 	char sendMessage[13];
-	long id = millis();
+	long ids = millis();		
+
+
 	
 	sendMessage[0] = SimpleEspNowMessageType::CONNECT;	// Type of message
 	sendMessage[1] = 1;	// 1st package
 	sendMessage[2] = 1;	// from 1 package. WIll be enhanced in one of the next versions
-	memcpy(sendMessage+3, &id, 4);	
+	memcpy(sendMessage+3, &ids, 4);	
+
 
 	sendMessage[14] = 0;
 	
