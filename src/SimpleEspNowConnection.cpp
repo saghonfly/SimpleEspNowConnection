@@ -220,10 +220,19 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 	_lastSentTime = millis();
 }
 
+void SimpleEspNowConnection::end()
+{
+	esp_now_unregister_send_cb();
+	esp_now_unregister_recv_cb();
+  
+	esp_now_deinit();
+}
+
 bool SimpleEspNowConnection::begin()
 {	
 	_supportLooping = true;
 
+	WiFi.disconnect(true);
 	WiFi.mode(WIFI_STA);	
 
 	WiFi.persistent(false);
@@ -474,20 +483,33 @@ bool SimpleEspNowConnection::sendMessage(uint8_t* message, size_t len, String ad
 	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
 		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ))
 	{
+#ifdef DEBUG
+		Serial.printf("sendMessage not possible with given parameter\n");
+#endif
 		return false;
 	}
 
 	int packages = len / 235 + 1;
 
 	if(!_supportLooping && packages > 1)
+	{	
+#ifdef DEBUG
+		Serial.printf("Looping not supported and packetes more than one!\n");
+#endif
 		return false;
+	}
 
 #ifdef DEBUG
 	Serial.printf("Number of bytes %d, number of packages %d\n", len, packages);
 #endif
 	
 	if(!_supportLooping)
+	{
+#ifdef DEBUG
+		Serial.printf("Use old message style for sending\n");
+#endif
 		return sendMessageOld(message, address);
+	}
 	
 	if(_role == SimpleEspNowRole::CLIENT)
 		address = macToStr(_serverMac);
