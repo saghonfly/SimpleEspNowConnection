@@ -222,7 +222,7 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 
 bool SimpleEspNowConnection::begin()
 {	
-	Wifi.disconnect(true);
+	WiFi.disconnect(true);
 
 	_supportLooping = true;
 
