@@ -222,6 +222,8 @@ SimpleEspNowConnection::SimpleEspNowConnection(SimpleEspNowRole role)
 
 bool SimpleEspNowConnection::begin()
 {	
+	Wifi.disconnect(true);
+
 	_supportLooping = true;
 
 #if defined(ESP32)
