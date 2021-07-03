@@ -3,11 +3,11 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.2.0
+  Version : 1.3.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 06 Oct 2020
+  Modified 01 Jul 2021
   By Erich O. Pintar
 */
 
@@ -55,6 +55,8 @@ class SimpleEspNowConnection
 	typedef std::function<void(void)> PairingFinishedFunction;	
   
     SimpleEspNowConnection(SimpleEspNowRole role);
+	static uint16_t calculateChecksum(const char* message);
+
 
 	bool              begin();
 	bool              loop();

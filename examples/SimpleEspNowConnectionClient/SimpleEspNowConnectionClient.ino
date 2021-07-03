@@ -54,6 +54,8 @@ And so it was, brimful of great gold coins. Well, at first she simply stood stoc
 \"Lawks! But I do feel rich. I feel awful rich!\"\n\
 ";   
 
+  Serial.println(SimpleEspNowConnection::calculateChecksum(bigMessage));
+
  return(simpleEspConnection.sendMessage(bigMessage));  
 }
 
@@ -89,7 +91,10 @@ void OnMessage(uint8_t* ad, const uint8_t* message, size_t len)
     Serial.printf("e:%s\n", myData.e ? "true" : "false");    
   }
   else
+  {
+    Serial.println(SimpleEspNowConnection::calculateChecksum((char *)message));
     Serial.printf("MESSAGE:[%d]%s from %s\n", len, (char *)message, simpleEspConnection.macToStr(ad).c_str());
+  }
 }
 
 void OnNewGatewayAddress(uint8_t *ga, String ad)

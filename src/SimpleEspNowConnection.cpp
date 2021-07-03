@@ -3,11 +3,11 @@
   Erich O. Pintar
   https://pintarweb.net
   
-  Version : 1.2.0
+  Version : 1.3.0
   
   Created 04 Mai 2020
   By Erich O. Pintar
-  Modified 06 Oct 2020
+  Modified 01 Jul 2021
   By Erich O. Pintar
 */
 
@@ -360,6 +360,20 @@ void SimpleEspNowConnection::pairingTickerClient()
 #endif
 }
 
+uint16_t SimpleEspNowConnection::calculateChecksum(const char* message)
+{
+	uint8_t sum1 = 0;
+	uint8_t sum2 = 0;
+	
+	for(int i = 0; i<strlen(message); i++)
+	{
+		sum1 = (sum1 + message[i]) % 255;
+		sum2 = (sum2 + sum1) % 255;
+	}
+
+	return (sum2 << 8) | sum1;
+}
+
 void SimpleEspNowConnection::pairingTickerLED()
 {	
   if(simpleEspNowConnection->_pairingOngoing)
@@ -475,6 +489,9 @@ void SimpleEspNowConnection::prepareSendPackages(uint8_t* message, size_t len, S
 
 bool SimpleEspNowConnection::sendMessage(char* message, String address)
 {
+#ifdef DEBUG
+	Serial.printf("SimpleEspNowConnection::sendMessage '%s' to %s", message, address.c_str());
+#endif	
 	return sendMessage((uint8_t*)message, strlen(message)+1, address);
 }
 
@@ -516,6 +533,11 @@ bool SimpleEspNowConnection::sendPackage(long id, int package, int sum, uint8_t*
 	memcpy(sendMessage+3, &id, 4);	
 	memcpy(sendMessage+7, message, messagelen);	
 	
+#ifdef DEBUG
+	Serial.print("#");
+#endif	
+	
+	
 	if(_role == SimpleEspNowRole::SERVER)
 	{
 #if defined(ESP32)
@@ -535,12 +557,18 @@ bool SimpleEspNowConnection::sendPackage(long id, int package, int sum, uint8_t*
 		_openTransaction = true;
 		esp_now_send(address, (uint8_t *) sendMessage, messagelen+7);
 	}
+
+#ifdef DEBUG
+	Serial.print("*");
+#endif	
 		
 	return true;
 }
 
 bool SimpleEspNowConnection::sendMessageOld(uint8_t* message, String address)
 {
+	Serial.printf("Usage of old message style depreciated!");
+	
 	if( (_role == SimpleEspNowRole::SERVER && address.length() != 12 ) ||
 		(_role == SimpleEspNowRole::CLIENT && _serverMac[0] == 0 ) ||
 		sizeof(message) > 235)
@@ -671,17 +699,21 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 				memcpy(sendMessage+3, &ids, 4);	
 				
 				memcpy(sendMessage+7, simpleEspNowConnection->_myAddress, 6);
-				
+
 				esp_now_send(mac, (uint8_t *) sendMessage, sizeof(sendMessage));
 			}
 		}
 	}
 	else
 	{
+#ifdef DEBUG
+		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr((uint8_t *)mac)+" start");
+#endif	
+		
 		if(data[0] == SimpleEspNowMessageType::DATA && simpleEspNowConnection->_MessageFunction)
 		{
 #ifdef DEBUG
-			Serial.printf("Package %d of %d packages\n", data[1], data[2]);
+			Serial.printf("SimpleEspNowConnection::onReceiveData Package %d of %d packages\n", data[1], data[2]);
 #endif			
 
 			if(data[1] == 1 && data[2] > 1)  // prepare memory for this device
@@ -712,9 +744,11 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 			}
 		}
 		if(simpleEspNowConnection->_PairedFunction)
-		{		
+		{	
 			if(data[0] == SimpleEspNowMessageType::PAIR)			
+			{
 				simpleEspNowConnection->_PairedFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)buffer)));			
+			}
 		}
 		if(simpleEspNowConnection->_ConnectedFunction)
 		{
@@ -723,7 +757,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 		}
 		
 #ifdef DEBUG
-		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr((uint8_t *)mac));
+		Serial.println("SimpleEspNowConnection::message arrived from : "+simpleEspNowConnection->macToStr((uint8_t *)mac)+" done");
 #endif	
 	}
 }
@@ -836,7 +870,12 @@ bool SimpleEspNowConnection::loop()
 	if(dbo == NULL)
 		return false;
 	if(simpleEspNowConnection->_openTransaction)
+	{
+#ifdef DEBUG
+        Serial.println("+");
+#endif
 		return true;
+	}
 
 	sendPackage(dbo->_id, dbo->_counter, dbo->_packages, dbo->_message, dbo->_len, dbo->_device);
 	
