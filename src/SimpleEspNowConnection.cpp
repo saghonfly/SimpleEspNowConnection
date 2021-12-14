@@ -350,7 +350,7 @@ void SimpleEspNowConnection::pairingTickerClient()
 #if defined(ESP8266)
     wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
 #elif defined(ESP32)	
-	esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
+	esp_wifi_set_mac(WIFI_IF_STA, &simpleEspNowConnection->_myAddress[0]);
 #endif	
 
 #ifdef DEBUG
@@ -414,7 +414,7 @@ bool SimpleEspNowConnection::startPairing(int timeoutSec)
 #if defined(ESP8266)
 		wifi_set_macaddr(STATION_IF, &_pairingMac[0]);
 #elif defined(ESP32)	
-		esp_wifi_set_mac(ESP_IF_WIFI_STA, &_pairingMac[0]);
+		esp_wifi_set_mac(WIFI_IF_STA, &_pairingMac[0]);
 #endif	
 
 #ifdef DEBUG
@@ -655,7 +655,7 @@ void SimpleEspNowConnection::onReceiveData(const uint8_t *mac, const uint8_t *da
 #if defined(ESP8266)
 				wifi_set_macaddr(STATION_IF, &simpleEspNowConnection->_myAddress[0]);
 #elif defined(ESP32)
-				esp_wifi_set_mac(ESP_IF_WIFI_STA, &simpleEspNowConnection->_myAddress[0]);
+				esp_wifi_set_mac(WIFI_IF_STA, &simpleEspNowConnection->_myAddress[0]);
 #endif				
 				simpleEspNowConnection->endPairing();
 				simpleEspNowConnection->_NewGatewayAddressFunction((uint8_t *)mac, String(simpleEspNowConnection->macToStr((uint8_t *)mac)));
