@@ -191,7 +191,8 @@ bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(const uint8_t *de
         delete _dbo[i];
         _dbo[i] = NULL;
       }
-    }	
+    }
+    return true;
 }
 
 bool SimpleEspNowConnection::DeviceMessageBuffer::deleteBuffer(SimpleEspNowConnection::DeviceMessageBuffer::DeviceBufferObject* dbo)
